@@ -2,6 +2,14 @@
 
 A **Hybrid Authentication System** built with Node.js, PostgreSQL, and React featuring Google OAuth and Email OTP verification.
 
+## 🌐 Live Demo
+
+- **API**: https://recycleshare.onrender.com
+- **API Docs**: https://recycleshare.onrender.com/api/docs/
+- **Database**: Neon PostgreSQL (Frankfurt)
+
+---
+
 ## 🎯 Features
 
 ### Authentication Flows
@@ -23,98 +31,124 @@ A **Hybrid Authentication System** built with Node.js, PostgreSQL, and React fea
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Local Development)
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL 14+
 - npm or yarn
+- Git
 
-### 1. Clone & Setup
+### 1. Clone the Repository
 
 ```bash
+git clone git@github.com:aysesude/RecycleShare.git
 cd RecycleShare
+git checkout railway-deploy
 ```
 
 ### 2. Backend Setup
 
 ```bash
 cd backend
-
-# Install dependencies
 npm install
-
-# Create .env file
-cp .env.example .env
 ```
 
-Edit `.env` with your credentials:
+Create `.env` file:
 
 ```env
-PORT=5000
+PORT=5001
 NODE_ENV=development
 
-# PostgreSQL
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=recycleshare
-DB_USER=your_username
-DB_PASSWORD=your_password
+# Cloud Database (Neon) - Get credentials from team lead
+DATABASE_URL=postgresql://neondb_owner:PASSWORD@ep-xxx.eu-central-1.aws.neon.tech/neondb?sslmode=require
 
 # JWT
-JWT_SECRET=your-super-secret-key-min-32-chars
+JWT_SECRET=recycleshare-super-secret-jwt-key-2024
 JWT_EXPIRES_IN=7d
 
-# Google OAuth
+# Google OAuth - Get from team lead
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 
-# Email (Gmail SMTP)
+# Email (Gmail SMTP) - Get from team lead
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
+SMTP_USER=recycleshareco@gmail.com
+SMTP_PASSWORD=get-from-team-lead
 
 # Frontend URL
 FRONTEND_URL=http://localhost:5173
 ```
 
-#### Create PostgreSQL Database
+> ⚠️ **Note**: Ask team lead for `DATABASE_URL`, `GOOGLE_CLIENT_ID`, and `SMTP_PASSWORD`
 
-```sql
-CREATE DATABASE recycleshare;
-```
-
-The tables will be created automatically on first run.
-
-#### Start Backend
+Start backend:
 
 ```bash
 npm run dev
 ```
+
+Backend will run at: http://localhost:5001
 
 ### 3. Frontend Setup
 
 ```bash
-cd frontend
-
-# Install dependencies
+cd ../frontend
 npm install
-
-# Create .env file
-cp .env.example .env
 ```
 
-Edit `.env`:
+Create `.env` file:
 
 ```env
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=http://localhost:5001/api
 VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 ```
 
-#### Start Frontend
+Start frontend:
 
 ```bash
 npm run dev
+```
+
+Frontend will run at: http://localhost:5173
+
+---
+
+## 🔌 API Endpoints
+
+Base URL: `https://recycleshare.onrender.com/api`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Health check |
+| POST | `/auth/register` | Register with email/password |
+| POST | `/auth/verify-otp` | Verify OTP code |
+| POST | `/auth/resend-otp` | Resend OTP email |
+| POST | `/auth/login` | Login with email/password |
+| POST | `/auth/google` | Google OAuth login |
+| POST | `/auth/google/complete` | Complete Google registration (add phone) |
+| GET | `/auth/me` | Get current user (requires JWT) |
+
+📚 Full API documentation: https://recycleshare.onrender.com/api/docs/
+
+---
+
+## 🗄️ Database Schema
+
+```sql
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255),
+    full_name VARCHAR(255) NOT NULL,
+    phone VARCHAR(20),
+    is_verified BOOLEAN DEFAULT FALSE,
+    auth_provider VARCHAR(20) DEFAULT 'local',
+    google_id VARCHAR(255),
+    otp_code VARCHAR(6),
+    otp_expires_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
 ---
@@ -125,31 +159,29 @@ npm run dev
 RecycleShare/
 ├── backend/
 │   ├── config/
-│   │   └── database.js       # PostgreSQL connection & schema
+│   │   └── database.js         # PostgreSQL connection & schema
 │   ├── controllers/
-│   │   └── auth.controller.js # Auth logic
+│   │   └── auth.controller.js  # Auth logic
 │   ├── middleware/
-│   │   ├── auth.middleware.js # JWT verification
-│   │   └── validate.middleware.js
+│   │   └── auth.middleware.js  # JWT verification
 │   ├── routes/
-│   │   └── auth.routes.js    # API endpoints
+│   │   └── auth.routes.js      # API endpoints
 │   ├── utils/
-│   │   ├── email.utils.js    # OTP email templates
-│   │   └── jwt.utils.js      # Token generation
+│   │   ├── email.utils.js      # OTP email templates
+│   │   └── jwt.utils.js        # Token generation
 │   ├── validators/
-│   │   └── auth.validator.js # Input validation rules
-│   ├── server.js             # Express app entry
+│   │   └── auth.validator.js   # Input validation
+│   ├── swagger.json            # API documentation
+│   ├── server.js               # Express app entry
 │   └── package.json
 │
 ├── frontend/
-│   ├── public/
-│   │   └── leaf.svg
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── AuthLayout.jsx    # Auth page wrapper
-│   │   │   └── FormElements.jsx  # Reusable inputs
+│   │   │   ├── AuthLayout.jsx
+│   │   │   └── FormElements.jsx
 │   │   ├── context/
-│   │   │   └── AuthContext.jsx   # Auth state management
+│   │   │   └── AuthContext.jsx
 │   │   ├── pages/
 │   │   │   ├── Login.jsx
 │   │   │   ├── Register.jsx
@@ -157,12 +189,9 @@ RecycleShare/
 │   │   │   ├── GooglePhoneSetup.jsx
 │   │   │   └── Dashboard.jsx
 │   │   ├── services/
-│   │   │   └── api.js           # Axios instance
+│   │   │   └── api.js
 │   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css            # Tailwind + custom styles
-│   ├── index.html
-│   ├── tailwind.config.js       # Custom eco theme
+│   │   └── main.jsx
 │   └── package.json
 │
 └── README.md
@@ -170,118 +199,84 @@ RecycleShare/
 
 ---
 
-## 🔌 API Endpoints
+## 🛠️ Tech Stack
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/auth/register` | Create account (sends OTP) | ❌ |
-| POST | `/api/auth/login` | Standard login | ❌ |
-| POST | `/api/auth/verify-otp` | Verify email with OTP | ❌ |
-| POST | `/api/auth/resend-otp` | Request new OTP | ❌ |
-| POST | `/api/auth/google` | Google OAuth (initial) | ❌ |
-| POST | `/api/auth/google/complete` | Complete Google registration with phone | ❌ |
-| GET | `/api/auth/me` | Get current user | ✅ |
+### Backend
+- **Runtime**: Node.js 18+
+- **Framework**: Express.js
+- **Database**: PostgreSQL (Neon Cloud)
+- **Auth**: JWT, bcrypt, Google OAuth
+- **Email**: Nodemailer (Gmail SMTP)
+- **Docs**: Swagger UI
 
----
+### Frontend
+- **Framework**: React 18 + Vite
+- **Styling**: Tailwind CSS + DaisyUI
+- **HTTP**: Axios
+- **Routing**: React Router v6
+- **Auth**: @react-oauth/google
 
-## 📧 Email Setup (Gmail)
-
-1. Go to [Google Account Security](https://myaccount.google.com/security)
-2. Enable **2-Step Verification**
-3. Go to **App passwords**
-4. Generate a new app password for "Mail"
-5. Use this 16-character password in `SMTP_PASSWORD`
-
----
-
-## 🔑 Google OAuth Setup
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Create a new project or select existing
-3. Navigate to **APIs & Services > Credentials**
-4. Create **OAuth 2.0 Client ID**
-5. Add authorized origins:
-   - `http://localhost:5173`
-   - `http://localhost:5000`
-6. Copy the **Client ID** to both `.env` files
+### Cloud Services (Free Tier)
+- **Database**: [Neon](https://neon.tech) - Serverless PostgreSQL
+- **Backend**: [Render](https://render.com) - Node.js hosting
+- **Frontend**: [Vercel](https://vercel.com) - React hosting (optional)
 
 ---
 
-## 🎨 Design System
+## 👥 Team Access
 
-### Color Palette (Eco-Minimalist)
+### Getting Access
+1. Request GitHub collaborator access from team lead
+2. Get environment variables (DATABASE_URL, API keys)
+3. Clone and follow Quick Start guide above
 
-| Name | Hex | Usage |
-|------|-----|-------|
-| Emerald 600 | `#059669` | Primary buttons, CTAs |
-| Emerald 500 | `#10b981` | Secondary, gradients |
-| Emerald 100 | `#d1fae5` | Backgrounds, badges |
-| Eco 50 | `#f0fdf4` | Page backgrounds |
-| Gray 800 | `#1f2937` | Text |
-
-### Components
-
-- **eco-card**: White cards with subtle green shadow
-- **eco-btn**: Gradient green buttons
-- **eco-input**: Bordered inputs with emerald focus ring
-- **OTP Input**: 6-box digit input with animations
+### Services
+- **GitHub**: github.com/aysesude/RecycleShare
+- **Neon Dashboard**: console.neon.tech (request invite)
+- **Render Dashboard**: dashboard.render.com (request team invite)
 
 ---
 
-## 🔒 Security Notes
+## 🔧 Common Issues
 
-1. **Never commit `.env` files** - they contain secrets
-2. Change `JWT_SECRET` in production (min 32 characters)
-3. Use HTTPS in production
-4. Set proper CORS origins
-5. Rate limit auth endpoints (recommended: express-rate-limit)
+### Port 5000 conflict (macOS)
+macOS uses port 5000 for Control Center. Use port 5001 instead:
+```env
+PORT=5001
+```
+
+### Google OAuth "Wrong number of segments"
+Make sure frontend sends `id_token` (not `access_token`) from Google login.
+
+### Database connection error
+Check `DATABASE_URL` is correct and Neon project is awake (serverless may sleep).
+
+### CORS errors
+Backend allows localhost:5173, localhost:3000, and all *.onrender.com, *.vercel.app domains.
 
 ---
 
-## 📝 Database Schema
+## 📝 License
 
-```sql
-CREATE TABLE users (
-  user_id SERIAL PRIMARY KEY,
-  first_name VARCHAR(50) NOT NULL,
-  last_name VARCHAR(50) NOT NULL,
-  email VARCHAR(100) UNIQUE NOT NULL,
-  password VARCHAR(255),          -- NULL for Google users
-  google_id VARCHAR(255) UNIQUE,  -- NULL for standard users
-  profile_picture VARCHAR(500),
-  phone VARCHAR(20) UNIQUE NOT NULL,
-  role VARCHAR(20) DEFAULT 'resident',
-  is_verified BOOLEAN DEFAULT FALSE,
-  verification_code VARCHAR(6),
-  verification_code_expires TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  is_active BOOLEAN DEFAULT TRUE
-);
+MIT
+
+---
+
+## 🤝 Contributing
+
+1. Create a feature branch from `railway-deploy`
+2. Make your changes
+3. Test locally
+4. Push and create PR
+
+```bash
+git checkout railway-deploy
+git pull origin railway-deploy
+git checkout -b feature/your-feature
+# ... make changes ...
+git push origin feature/your-feature
 ```
 
 ---
 
-## 🧪 Testing
-
-### Test Standard Registration
-1. Go to `/register`
-2. Fill form with valid data
-3. Check email for 6-digit OTP
-4. Enter OTP on verification page
-5. Should redirect to dashboard
-
-### Test Google Auth
-1. Go to `/login`
-2. Click "Continue with Google"
-3. If new user, enter phone number
-4. Should redirect to dashboard
-
----
-
-## 📜 License
-
-MIT License - Build something green! 🌍
-
----
-
-Made with 💚 for a sustainable future
+Made with 💚 by RecycleShare Team
