@@ -36,7 +36,7 @@ const initializeDatabase = async () => {
       google_id VARCHAR(255) UNIQUE,
       profile_picture VARCHAR(500),
       phone VARCHAR(20) UNIQUE NOT NULL,
-      role VARCHAR(20) NOT NULL DEFAULT 'resident',
+      role VARCHAR(20) NOT NULL DEFAULT 'user',
       is_verified BOOLEAN DEFAULT FALSE,
       verification_code VARCHAR(6),
       verification_code_expires TIMESTAMP,
