@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useGoogleLogin } from '@react-oauth/google'
+import { GoogleLogin } from '@react-oauth/google'
 import toast from 'react-hot-toast'
-import { FcGoogle } from 'react-icons/fc'
 import AuthLayout from '../components/AuthLayout'
 import { 
   TextInput, 
@@ -126,39 +125,38 @@ const Register = () => {
     }
   }
 
-  // Google OAuth Handler
-  const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setGoogleLoading(true)
-      try {
-        const response = await googleAuth(tokenResponse.access_token)
-        
-        if (response.success) {
-          if (response.data.requiresPhone) {
-            navigate('/google-phone-setup', {
-              state: {
-                googleId: response.data.googleId,
-                email: response.data.email,
-                firstName: response.data.firstName,
-                lastName: response.data.lastName,
-                profilePicture: response.data.profilePicture
-              }
-            })
-          } else {
-            toast.success('Welcome to RecycleShare! 🌿')
-            navigate('/dashboard')
-          }
+  // Google OAuth Success Handler
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setGoogleLoading(true)
+    try {
+      const response = await googleAuth(credentialResponse.credential)
+      
+      if (response.success) {
+        if (response.data.requiresPhone) {
+          navigate('/google-phone-setup', {
+            state: {
+              googleId: response.data.googleId,
+              email: response.data.email,
+              firstName: response.data.firstName,
+              lastName: response.data.lastName,
+              profilePicture: response.data.profilePicture
+            }
+          })
+        } else {
+          toast.success('Welcome to RecycleShare! 🌿')
+          navigate('/dashboard')
         }
-      } catch (error) {
-        toast.error(error.response?.data?.message || 'Google sign up failed')
-      } finally {
-        setGoogleLoading(false)
       }
-    },
-    onError: () => {
-      toast.error('Google sign up failed. Please try again.')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Google sign up failed')
+    } finally {
+      setGoogleLoading(false)
     }
-  })
+  }
+
+  const handleGoogleError = () => {
+    toast.error('Google sign up failed. Please try again.')
+  }
 
   return (
     <AuthLayout 
@@ -270,20 +268,22 @@ const Register = () => {
       <Divider text="or sign up with" />
 
       {/* Google Sign Up Button */}
-      <button
-        onClick={() => handleGoogleLogin()}
-        disabled={googleLoading}
-        className="btn btn-outline w-full rounded-xl border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700 font-semibold"
-      >
+      <div className="flex justify-center">
         {googleLoading ? (
-          <span className="loading loading-spinner loading-sm"></span>
+          <div className="btn btn-outline w-full rounded-xl border-gray-200">
+            <span className="loading loading-spinner loading-sm"></span>
+          </div>
         ) : (
-          <>
-            <FcGoogle className="w-5 h-5 mr-2" />
-            Continue with Google
-          </>
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            theme="outline"
+            size="large"
+            text="signup_with"
+            shape="rectangular"
+          />
         )}
-      </button>
+      </div>
 
       {/* Sign In Link */}
       <p className="text-center mt-6 text-gray-600">
