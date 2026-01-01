@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger.json');
 const authRoutes = require('./routes/auth.routes');
 const { initializeDatabase } = require('./config/database');
 
@@ -32,6 +34,12 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// Swagger API Documentation
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'RecycleShare API Docs 🌿'
+}));
 
 // Health check
 app.get('/api/health', (req, res) => {
