@@ -7,7 +7,7 @@ const { initializeDatabase } = require('./config/database');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS - allow multiple origins
+// CORS - allow multiple origins (including Render/Vercel deployments)
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
@@ -21,7 +21,13 @@ app.use(cors({
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    return callback(null, true); // Allow all for now
+    // Allow Render, Vercel, Netlify domains
+    if (origin.endsWith('.onrender.com') || 
+        origin.endsWith('.vercel.app') || 
+        origin.endsWith('.netlify.app')) {
+      return callback(null, true);
+    }
+    return callback(null, true); // Allow all for development
   },
   credentials: true
 }));
@@ -30,6 +36,11 @@ app.use(express.json());
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'RecycleShare API is running 🌿' });
+});
+
+// Health check endpoint for Render
+app.get('/api/auth/health', (req, res) => {
+  res.json({ status: 'ok', service: 'RecycleShare Auth API', timestamp: new Date().toISOString() });
 });
 
 // Routes
