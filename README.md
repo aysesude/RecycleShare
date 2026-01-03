@@ -4,9 +4,10 @@ A **Hybrid Authentication System** built with Node.js, PostgreSQL, and React fea
 
 ## 🌐 Live Demo
 
-- **API**: https://recycleshare.onrender.com
-- **API Docs**: https://recycleshare.onrender.com/api/docs/
-- **Database**: Neon PostgreSQL (Frankfurt)
+- **🌍 Frontend**: https://recycle-share.vercel.app
+- **🔗 API**: https://recycleshare.onrender.com
+- **📚 API Docs**: https://recycleshare.onrender.com/api/docs/
+- **🗄️ Database**: Neon PostgreSQL (Frankfurt)
 
 ---
 
