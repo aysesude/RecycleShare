@@ -1,22 +1,54 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger.json');
 const authRoutes = require('./routes/auth.routes');
 const { initializeDatabase } = require('./config/database');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// CORS - allow multiple origins (including Render/Vercel deployments)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function(origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    // Allow Render, Vercel, Netlify domains
+    if (origin.endsWith('.onrender.com') || 
+        origin.endsWith('.vercel.app') || 
+        origin.endsWith('.netlify.app')) {
+      return callback(null, true);
+    }
+    return callback(null, true); // Allow all for development
+  },
   credentials: true
 }));
 app.use(express.json());
 
+// Swagger API Documentation
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'RecycleShare API Docs 🌿'
+}));
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'RecycleShare API is running 🌿' });
+});
+
+// Health check endpoint for Render
+app.get('/api/auth/health', (req, res) => {
+  res.json({ status: 'ok', service: 'RecycleShare Auth API', timestamp: new Date().toISOString() });
 });
 
 // Routes

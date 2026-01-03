@@ -1,12 +1,18 @@
 const { Pool } = require('pg');
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'recycleshare',
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+// Railway provides DATABASE_URL, local dev uses individual vars
+const pool = process.env.DATABASE_URL 
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    })
+  : new Pool({
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 5432,
+      database: process.env.DB_NAME || 'recycleshare',
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+    });
 
 // Test connection
 pool.on('connect', () => {
@@ -30,7 +36,7 @@ const initializeDatabase = async () => {
       google_id VARCHAR(255) UNIQUE,
       profile_picture VARCHAR(500),
       phone VARCHAR(20) UNIQUE NOT NULL,
-      role VARCHAR(20) NOT NULL DEFAULT 'resident',
+      role VARCHAR(20) NOT NULL DEFAULT 'user',
       is_verified BOOLEAN DEFAULT FALSE,
       verification_code VARCHAR(6),
       verification_code_expires TIMESTAMP,
