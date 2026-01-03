@@ -50,8 +50,10 @@ const register = async (req, res) => {
       [firstName, lastName, email, hashedPassword, phone, otp, otpExpiry]
     );
 
-    // Send OTP email
-    await sendOTPEmail(email, firstName, otp);
+    // Send OTP email (async - don't wait, user shouldn't wait for email)
+    sendOTPEmail(email, firstName, otp).catch(err => {
+      console.error('Failed to send OTP email:', err.message);
+    });
 
     res.status(201).json({
       success: true,
