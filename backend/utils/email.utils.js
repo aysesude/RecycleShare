@@ -1,23 +1,12 @@
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// Create transporter - supports both Gmail (local) and Resend (production)
+// Initialize Resend if API key available
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+// Create nodemailer transporter for Gmail (local development only)
 const createTransporter = () => {
-  // Use Resend in production if API key is available
-  if (process.env.RESEND_API_KEY) {
-    console.log('📧 Using Resend SMTP');
-    return nodemailer.createTransport({
-      host: 'smtp.resend.com',
-      port: 465,
-      secure: true,
-      auth: {
-        user: 'resend',
-        pass: process.env.RESEND_API_KEY
-      }
-    });
-  }
-  
-  // Fallback to Gmail for local development
-  console.log('📧 Using Gmail SMTP');
+  console.log('📧 Using Gmail SMTP (local)');
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT) || 465,
@@ -32,7 +21,7 @@ const createTransporter = () => {
   });
 };
 
-const transporter = createTransporter();
+const transporter = !resend ? createTransporter() : null;
 
 // Generate 6-digit OTP
 const generateOTP = () => {
@@ -127,7 +116,21 @@ const sendOTPEmail = async (email, firstName, otp) => {
 
   try {
     console.log(`📤 Attempting to send OTP email to ${email}...`);
-    await transporter.sendMail(mailOptions);
+    
+    // Use Resend SDK in production
+    if (resend) {
+      console.log('📧 Using Resend SDK');
+      await resend.emails.send({
+        from: 'RecycleShare <onboarding@resend.dev>',
+        to: email,
+        subject: '🔐 Verify Your RecycleShare Account',
+        html: mailOptions.html
+      });
+    } else {
+      // Use nodemailer for local development
+      await transporter.sendMail(mailOptions);
+    }
+    
     console.log(`✅ OTP email sent to ${email}`);
     return true;
   } catch (error) {
@@ -195,7 +198,16 @@ const sendWelcomeEmail = async (email, firstName) => {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
+    if (resend) {
+      await resend.emails.send({
+        from: 'RecycleShare <onboarding@resend.dev>',
+        to: email,
+        subject: '🎉 Welcome to RecycleShare!',
+        html: mailOptions.html
+      });
+    } else {
+      await transporter.sendMail(mailOptions);
+    }
     console.log(`✅ Welcome email sent to ${email}`);
     return true;
   } catch (error) {
