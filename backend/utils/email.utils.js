@@ -1,8 +1,11 @@
 const nodemailer = require('nodemailer');
-const { Resend } = require('resend');
+const sgMail = require('@sendgrid/mail');
 
-// Initialize Resend if API key available
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+// Initialize SendGrid if API key available
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log('📧 SendGrid initialized');
+}
 
 // Create nodemailer transporter for Gmail (local development only)
 const createTransporter = () => {
@@ -21,7 +24,7 @@ const createTransporter = () => {
   });
 };
 
-const transporter = !resend ? createTransporter() : null;
+const transporter = !process.env.SENDGRID_API_KEY ? createTransporter() : null;
 
 // Generate 6-digit OTP
 const generateOTP = () => {
@@ -117,12 +120,12 @@ const sendOTPEmail = async (email, firstName, otp) => {
   try {
     console.log(`📤 Attempting to send OTP email to ${email}...`);
     
-    // Use Resend SDK in production
-    if (resend) {
-      console.log('📧 Using Resend SDK');
-      await resend.emails.send({
-        from: 'RecycleShare <onboarding@resend.dev>',
+    // Use SendGrid in production
+    if (process.env.SENDGRID_API_KEY) {
+      console.log('📧 Using SendGrid');
+      await sgMail.send({
         to: email,
+        from: process.env.SMTP_USER || 'recycleshareco@gmail.com',
         subject: '🔐 Verify Your RecycleShare Account',
         html: mailOptions.html
       });
@@ -135,7 +138,7 @@ const sendOTPEmail = async (email, firstName, otp) => {
     return true;
   } catch (error) {
     console.error('❌ Failed to send OTP email:', error.message);
-    console.error('📋 Error details:', error.code, error.command);
+    console.error('📋 Error details:', error.response?.body || error);
     // Don't throw - let the registration succeed even if email fails
     return false;
   }
@@ -198,10 +201,10 @@ const sendWelcomeEmail = async (email, firstName) => {
   };
 
   try {
-    if (resend) {
-      await resend.emails.send({
-        from: 'RecycleShare <onboarding@resend.dev>',
+    if (process.env.SENDGRID_API_KEY) {
+      await sgMail.send({
         to: email,
+        from: process.env.SMTP_USER || 'recycleshareco@gmail.com',
         subject: '🎉 Welcome to RecycleShare!',
         html: mailOptions.html
       });
