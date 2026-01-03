@@ -108,6 +108,7 @@ const Register = () => {
         })
       }
     } catch (error) {
+      console.error('Registration error:', error)
       const errorData = error.response?.data
       
       if (errorData?.errors) {
@@ -117,6 +118,10 @@ const Register = () => {
           backendErrors[err.field] = err.message
         })
         setErrors(backendErrors)
+      } else if (error.code === 'ECONNABORTED') {
+        toast.error('Server is starting up. Please wait a moment and try again.')
+      } else if (!error.response) {
+        toast.error('Cannot connect to server. Please try again.')
       } else {
         toast.error(errorData?.message || 'Registration failed. Please try again.')
       }

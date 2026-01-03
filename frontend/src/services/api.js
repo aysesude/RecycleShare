@@ -7,7 +7,8 @@ const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  timeout: 30000 // 30 seconds timeout for Render cold start
 })
 
 // Request interceptor - add auth token
@@ -28,6 +29,16 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle timeout
+    if (error.code === 'ECONNABORTED') {
+      error.message = 'Request timed out. Server might be starting up, please try again.'
+    }
+    
+    // Handle network error
+    if (!error.response) {
+      error.message = 'Network error. Please check your connection.'
+    }
+    
     if (error.response?.status === 401) {
       // Token expired or invalid
       localStorage.removeItem('token')
