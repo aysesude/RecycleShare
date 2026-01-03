@@ -1,18 +1,38 @@
 const nodemailer = require('nodemailer');
 
-// Create transporter with SSL (port 465)
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT) || 465,
-  secure: true, // Use SSL
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000
-});
+// Create transporter - supports both Gmail (local) and Resend (production)
+const createTransporter = () => {
+  // Use Resend in production if API key is available
+  if (process.env.RESEND_API_KEY) {
+    console.log('📧 Using Resend SMTP');
+    return nodemailer.createTransport({
+      host: 'smtp.resend.com',
+      port: 465,
+      secure: true,
+      auth: {
+        user: 'resend',
+        pass: process.env.RESEND_API_KEY
+      }
+    });
+  }
+  
+  // Fallback to Gmail for local development
+  console.log('📧 Using Gmail SMTP');
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT) || 465,
+    secure: true,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000
+  });
+};
+
+const transporter = createTransporter();
 
 // Generate 6-digit OTP
 const generateOTP = () => {
@@ -27,14 +47,19 @@ const sendOTPEmail = async (email, firstName, otp) => {
   console.log(`🔢 OTP Code: ${otp}`);
   console.log(`================================\n`);
 
-  // If SMTP not configured, skip email sending (dev mode)
-  if (!process.env.SMTP_USER || process.env.SMTP_USER === 'your_email@gmail.com') {
-    console.log('⚠️  SMTP not configured - Email skipped (dev mode)');
+  // Skip if no email config
+  if (!process.env.RESEND_API_KEY && !process.env.SMTP_USER) {
+    console.log('⚠️  Email not configured - skipped');
     return true;
   }
 
+  // Use Resend's default domain or custom SMTP_USER
+  const fromEmail = process.env.RESEND_API_KEY 
+    ? 'RecycleShare <onboarding@resend.dev>'
+    : `"RecycleShare 🌿" <${process.env.SMTP_USER}>`;
+
   const mailOptions = {
-    from: `"RecycleShare 🌿" <${process.env.SMTP_USER}>`,
+    from: fromEmail,
     to: email,
     subject: '🔐 Verify Your RecycleShare Account',
     html: `
@@ -115,8 +140,12 @@ const sendOTPEmail = async (email, firstName, otp) => {
 
 // Send welcome email after verification
 const sendWelcomeEmail = async (email, firstName) => {
+  const fromEmail = process.env.RESEND_API_KEY 
+    ? 'RecycleShare <onboarding@resend.dev>'
+    : `"RecycleShare 🌿" <${process.env.SMTP_USER}>`;
+
   const mailOptions = {
-    from: `"RecycleShare 🌿" <${process.env.SMTP_USER}>`,
+    from: fromEmail,
     to: email,
     subject: '🎉 Welcome to RecycleShare!',
     html: `
