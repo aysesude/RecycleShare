@@ -1,14 +1,17 @@
 const nodemailer = require('nodemailer');
 
-// Create transporter
+// Create transporter with timeout
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: process.env.SMTP_PORT || 587,
+  port: parseInt(process.env.SMTP_PORT) || 587,
   secure: false,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD
-  }
+  },
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 10000,
+  socketTimeout: 15000
 });
 
 // Generate 6-digit OTP
@@ -98,12 +101,15 @@ const sendOTPEmail = async (email, firstName, otp) => {
   };
 
   try {
+    console.log(`📤 Attempting to send OTP email to ${email}...`);
     await transporter.sendMail(mailOptions);
     console.log(`✅ OTP email sent to ${email}`);
     return true;
   } catch (error) {
-    console.error('❌ Failed to send OTP email:', error);
-    throw new Error('Failed to send verification email');
+    console.error('❌ Failed to send OTP email:', error.message);
+    console.error('📋 Error details:', error.code, error.command);
+    // Don't throw - let the registration succeed even if email fails
+    return false;
   }
 };
 
