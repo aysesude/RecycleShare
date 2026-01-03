@@ -15,7 +15,7 @@ const register = async (req, res) => {
   try {
     const { firstName, lastName, email, password, phone } = req.body;
 
-    // Check if email already exists
+    // Check if email already exists in users table
     const emailCheck = await query('SELECT user_id FROM users WHERE email = $1', [email]);
     if (emailCheck.rows.length > 0) {
       return res.status(400).json({
@@ -24,7 +24,7 @@ const register = async (req, res) => {
       });
     }
 
-    // Check if phone already exists
+    // Check if phone already exists in users table
     const phoneCheck = await query('SELECT user_id FROM users WHERE phone = $1', [phone]);
     if (phoneCheck.rows.length > 0) {
       return res.status(400).json({
@@ -33,6 +33,9 @@ const register = async (req, res) => {
       });
     }
 
+    // Delete any existing pending registration for this email or phone
+    await query('DELETE FROM pending_registrations WHERE email = $1 OR phone = $2', [email, phone]);
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
@@ -40,25 +43,21 @@ const register = async (req, res) => {
     const otp = generateOTP();
     const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
-    // Insert user (unverified)
-    const result = await query(
-      `INSERT INTO users (first_name, last_name, email, password, phone, verification_code, verification_code_expires, is_verified)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE)
-       RETURNING user_id, first_name, last_name, email, phone, role, is_verified, created_at`,
+    // Insert into pending_registrations (NOT users table)
+    await query(
+      `INSERT INTO pending_registrations (first_name, last_name, email, password, phone, verification_code, verification_code_expires)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [firstName, lastName, email, hashedPassword, phone, otp, otpExpiry]
     );
-
-    const user = result.rows[0];
 
     // Send OTP email
     await sendOTPEmail(email, firstName, otp);
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful! Please check your email for verification code.',
+      message: 'Please check your email for verification code.',
       data: {
-        userId: user.user_id,
-        email: user.email,
+        email: email,
         requiresVerification: true
       }
     });
@@ -78,31 +77,24 @@ const verifyOTP = async (req, res) => {
   try {
     const { email, code } = req.body;
 
-    // Find user with matching OTP
+    // Find pending registration
     const result = await query(
-      `SELECT user_id, first_name, last_name, email, phone, role, verification_code, verification_code_expires, is_verified
-       FROM users WHERE email = $1`,
+      `SELECT id, first_name, last_name, email, password, phone, verification_code, verification_code_expires
+       FROM pending_registrations WHERE email = $1`,
       [email]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'No pending registration found. Please register again.'
       });
     }
 
-    const user = result.rows[0];
-
-    if (user.is_verified) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email is already verified'
-      });
-    }
+    const pending = result.rows[0];
 
     // Check if OTP matches
-    if (user.verification_code !== code) {
+    if (pending.verification_code !== code) {
       return res.status(400).json({
         success: false,
         message: 'Invalid verification code'
@@ -110,22 +102,33 @@ const verifyOTP = async (req, res) => {
     }
 
     // Check if OTP is expired
-    if (new Date() > new Date(user.verification_code_expires)) {
+    if (new Date() > new Date(pending.verification_code_expires)) {
       return res.status(400).json({
         success: false,
         message: 'Verification code has expired. Please request a new one.'
       });
     }
 
-    // Update user as verified
-    await query(
-      `UPDATE users SET is_verified = TRUE, verification_code = NULL, verification_code_expires = NULL
-       WHERE user_id = $1`,
-      [user.user_id]
+    // Move from pending_registrations to users table
+    const userResult = await query(
+      `INSERT INTO users (first_name, last_name, email, password, phone, is_verified)
+       VALUES ($1, $2, $3, $4, $5, TRUE)
+       RETURNING user_id, first_name, last_name, email, phone, role, is_verified, created_at`,
+      [pending.first_name, pending.last_name, pending.email, pending.password, pending.phone]
     );
 
+    const user = userResult.rows[0];
+
+    // Delete from pending_registrations
+    await query('DELETE FROM pending_registrations WHERE id = $1', [pending.id]);
+
     // Generate JWT token
-    const token = generateToken({ ...user, is_verified: true });
+    const token = generateToken({
+      user_id: user.user_id,
+      email: user.email,
+      role: user.role,
+      is_verified: true
+    });
 
     // Send welcome email (async, don't wait)
     sendWelcomeEmail(user.email, user.first_name);
@@ -162,39 +165,33 @@ const resendOTP = async (req, res) => {
   try {
     const { email } = req.body;
 
+    // Check pending_registrations table
     const result = await query(
-      'SELECT user_id, first_name, is_verified FROM users WHERE email = $1',
+      'SELECT id, first_name FROM pending_registrations WHERE email = $1',
       [email]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'No pending registration found. Please register again.'
       });
     }
 
-    const user = result.rows[0];
-
-    if (user.is_verified) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email is already verified'
-      });
-    }
+    const pending = result.rows[0];
 
     // Generate new OTP
     const otp = generateOTP();
     const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
-    // Update OTP in database
+    // Update OTP in pending_registrations
     await query(
-      'UPDATE users SET verification_code = $1, verification_code_expires = $2 WHERE user_id = $3',
-      [otp, otpExpiry, user.user_id]
+      'UPDATE pending_registrations SET verification_code = $1, verification_code_expires = $2 WHERE id = $3',
+      [otp, otpExpiry, pending.id]
     );
 
     // Send new OTP email
-    await sendOTPEmail(email, user.first_name, otp);
+    await sendOTPEmail(email, pending.first_name, otp);
 
     res.json({
       success: true,

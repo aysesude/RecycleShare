@@ -3,8 +3,36 @@
 -- Created: 2025-01-20
 
 -- ============================================
+-- TABLE: pending_registrations
+-- Stores registration attempts waiting for email verification
+-- Records are moved to users table after OTP verification
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS pending_registrations (
+    -- Primary identifier
+    id SERIAL PRIMARY KEY,
+    
+    -- User information
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,           -- Hashed with bcrypt
+    phone VARCHAR(20) UNIQUE NOT NULL,
+    
+    -- OTP verification
+    verification_code VARCHAR(6) NOT NULL,
+    verification_code_expires TIMESTAMP NOT NULL,
+    
+    -- Metadata
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index for fast email lookup
+CREATE INDEX IF NOT EXISTS idx_pending_email ON pending_registrations(email);
+
+-- ============================================
 -- TABLE: users
--- Stores all user accounts for the RecycleShare platform
+-- Stores all verified user accounts for the RecycleShare platform
 -- Supports both standard email/password and Google OAuth authentication
 -- ============================================
 
