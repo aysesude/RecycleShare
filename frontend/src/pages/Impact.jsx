@@ -21,12 +21,13 @@ const ViewImpact = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        if (response.data.success) {
+        if (response.data.success && response.data.data) {
+          const apiData = response.data.data;
           setStats({
-            itemsShared: response.data.data.itemsShared,
-            co2Saved: response.data.data.co2Saved,
-            communityConnections: response.data.data.connections || 0,
-            monthlyProgress: response.data.data.monthlyImpact || [] 
+            itemsShared: apiData.itemsShared || 0,
+            co2Saved: apiData.co2Saved || "0.0",
+            communityConnections: apiData.connections || 0,
+            monthlyProgress: apiData.monthlyImpact || [] 
           });
         }
       } catch (error) {
