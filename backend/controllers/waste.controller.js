@@ -481,20 +481,74 @@ const getWasteTypes = async (req, res) => {
 };
 const getImpactStats = async (req, res) => {
   try {
-    const userId = req.user.id; 
-    const result = await query('SELECT COUNT(*) as total FROM wastes WHERE user_id = $1', [userId]);
-    const totalItems = parseInt(result.rows[0].total) || 0;
+    // Guard: ensure auth middleware provided req.user
+    if (!req.user || typeof req.user.user_id === 'undefined' || req.user.user_id === null) {
+      return res.status(401).json({ success: false, message: "Yetkisiz erişim" });
+    }
 
-    res.json({
-      success: true,
-      data: {
-        itemsShared: totalItems,
-        co2Saved: (totalItems * 0.5).toFixed(1),
-        connections: 0 
-      }
-    });
+    const userId = Number(req.user.user_id);
+    if (Number.isNaN(userId)) {
+      return res.status(400).json({ success: false, message: "Geçersiz kullanıcı ID" });
+    }
+
+    // 1) Total items shared by this user (regardless of status)
+    const totalResult = await query('SELECT COUNT(*) AS total FROM waste WHERE user_id = $1', [userId]);
+    const itemsShared = parseInt(totalResult.rows[0].total, 10) || 0;
+
+    // 2) Monthly breakdown: get counts per month for the last N months
+    const MONTHS = 6; // adjust as needed for frontend chart (6 months)
+    const monthlyRows = await query(`
+      SELECT date_trunc('month', COALESCE(record_date, now())) AS month_start,
+             COUNT(*) AS amount
+      FROM waste
+      WHERE user_id = $1
+      GROUP BY month_start
+      ORDER BY month_start DESC
+      LIMIT 12
+    `, [userId]);
+
+    // Map DB rows by year-month key for quick lookup
+    const countsByKey = {};
+    for (const row of monthlyRows.rows) {
+      const dt = new Date(row.month_start);
+      if (isNaN(dt)) continue;
+      const key = `${dt.getUTCFullYear()}-${dt.getUTCMonth()}`; // month index 0-11
+      countsByKey[key] = parseInt(row.amount, 10) || 0;
+    }
+
+    // Turkish short month names (match frontend expectation)
+    const monthNames = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+
+    // Build last MONTHS months array in chronological order
+    const monthlyImpact = [];
+    const now = new Date();
+    for (let i = MONTHS - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}`;
+      monthlyImpact.push({
+        month: monthNames[d.getMonth()],
+        amount: countsByKey[key] || 0
+      });
+    }
+
+    // 3) Derived metrics
+    const co2Saved = parseFloat((itemsShared * 2.5).toFixed(1)); // e.g. 2.5 kg per item
+    const communityConnections = Math.floor(itemsShared * 0.5);
+
+    // Response format required by frontend
+    return res.json({
+  itemsShared,
+  co2Saved,
+  communityConnections,
+  monthlyImpact
+});
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('getImpactStats error:', error);
+    // Avoid leaking internal SQL error details to the client; return safe message
+    return res.status(500).json({
+      success: false,
+      message: 'İstatistikler alınırken hata oluştu'
+    });
   }
 };
 module.exports = {
