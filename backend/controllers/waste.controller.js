@@ -484,7 +484,7 @@ const getImpactStats = async (req, res) => {
     // 1. Kullanıcı ID'sini güvenli bir şekilde al ve tam sayıya çevir
     const userId = parseInt(req.user?.user_id || req.user?.id, 10);
     
-    if (!userId || isNaN(userId)) {
+    if (isNaN(userId) || userId <= 0) {
       return res.status(401).json({ success: false, message: "Geçersiz Kullanıcı" });
     }
 
@@ -502,7 +502,7 @@ const getImpactStats = async (req, res) => {
       LIMIT 6
     `, [userId]);
 
-    const monthlyImpact = monthlyRows.rows.map(row => ({
+    const monthlyImpact = (monthlyRows.rows || []).map(row => ({
       month: row.month_label,
       amount: parseInt(row.count, 10)
     }));

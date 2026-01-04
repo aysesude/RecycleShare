@@ -24,9 +24,11 @@ const BrowseListings = () => {
   const fetchWasteTypes = async () => {
     try {
       const res = await api.get('/waste/types')
-      setWasteTypes(res.data?.data || [])
+      console.log('Waste types response:', res.data)
+      setWasteTypes(res.data?.data || res.data || [])
     } catch (err) {
-      // non-blocking
+      console.error('Error fetching waste types:', err)
+      setWasteTypes([])
     }
   }
 
@@ -45,10 +47,14 @@ const BrowseListings = () => {
     try {
       setLoading(true)
       const params = buildQuery()
+      console.log('Fetching listings with params:', params)
       const res = await api.get('/waste', { params })
-      setListings(res.data?.data || [])
+      console.log('Listings response:', res.data)
+      setListings(res.data?.data || res.data || [])
     } catch (err) {
+      console.error('Error fetching listings:', err)
       toast.error(err.response?.data?.message || err.message || 'Failed to load listings')
+      setListings([])
     } finally {
       setLoading(false)
     }
@@ -57,9 +63,11 @@ const BrowseListings = () => {
   const fetchMyReservations = async () => {
     try {
       const res = await api.get('/reservations/my/collector')
-      setReservations(res.data?.data || [])
+      console.log('Reservations response:', res.data)
+      setReservations(res.data?.data || res.data || [])
     } catch (err) {
-      // ignore
+      console.error('Error fetching reservations:', err)
+      setReservations([])
     }
   }
 
