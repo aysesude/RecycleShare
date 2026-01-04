@@ -8,6 +8,7 @@ import VerifyOTP from './pages/VerifyOTP'
 import GooglePhoneSetup from './pages/GooglePhoneSetup'
 import Dashboard from './pages/Dashboard'
 import Listings from './pages/Listings'
+import ViewImpact from './pages/Impact';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -87,6 +88,14 @@ function App() {
               <Listings />
             </ProtectedRoute>
           }
+        />
+        <Route 
+          path="/impact" 
+          element={
+            <ProtectedRoute>
+              <ViewImpact />
+            </ProtectedRoute>
+          } 
         />
 
         {/* Default Route */}
