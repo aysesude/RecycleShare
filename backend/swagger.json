@@ -2,8 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "title": "RecycleShare API",
-    "description": "🌿 RecycleShare Authentication API - Hybrid Google OAuth + Email OTP",
-    "version": "1.0.0",
+    "description": "🌿 Mahalle Atık Paylaşım & Geri Dönüşüm Takas Platformu API'si\n\n## Ödev Gereksinimleri\n- ✅ En az 4 tablo (5 tablo mevcut)\n- ✅ Her tabloda en az 10 kayıt\n- ✅ Primary key ve foreign key kısıtları\n- ✅ Silme kısıtı (ON DELETE CASCADE/RESTRICT)\n- ✅ Sayı kısıtı (CHECK constraint)\n- ✅ VIEW tanımı (3 adet)\n- ✅ INDEX tanımı (9 adet)\n- ✅ SEQUENCE tanımı\n- ✅ 3 SQL fonksiyonu (biri RECORD ve CURSOR ile)\n- ✅ 2 TRIGGER\n- ✅ UNION/EXCEPT sorguları\n- ✅ Aggregate fonksiyonlar ve HAVING\n- ✅ 2 farklı kullanıcı rolü (admin, user)",
+    "version": "2.0.0",
     "contact": {
       "name": "RecycleShare Team"
     }
@@ -19,80 +19,115 @@
     }
   ],
   "tags": [
-    {
-      "name": "Auth",
-      "description": "Authentication endpoints"
-    },
-    {
-      "name": "Health",
-      "description": "Health check endpoints"
-    }
+    { "name": "Auth", "description": "Kimlik doğrulama (Login, Register, OTP)" },
+    { "name": "Waste", "description": "Atık yönetimi (CRUD + VIEW + INDEX)" },
+    { "name": "Reservations", "description": "Rezervasyon yönetimi (TRIGGER + SEQUENCE)" },
+    { "name": "Reports", "description": "Raporlar (FUNCTION + AGGREGATE + UNION/EXCEPT)" },
+    { "name": "Admin", "description": "Admin işlemleri (Sadece admin rolü)" }
   ],
-  "paths": {
-    "/health": {
-      "get": {
-        "tags": ["Health"],
-        "summary": "Health Check",
-        "description": "Check if the API is running",
-        "responses": {
-          "200": {
-            "description": "API is healthy",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": { "type": "string", "example": "ok" },
-                    "message": { "type": "string", "example": "RecycleShare API is running 🌿" }
-                  }
-                }
-              }
-            }
-          }
-        }
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       }
     },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "user_id": { "type": "integer" },
+          "first_name": { "type": "string" },
+          "last_name": { "type": "string" },
+          "email": { "type": "string" },
+          "phone": { "type": "string" },
+          "role": { "type": "string", "enum": ["admin", "user"] },
+          "city": { "type": "string" },
+          "district": { "type": "string" },
+          "neighborhood": { "type": "string" },
+          "is_verified": { "type": "boolean" },
+          "is_active": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Waste": {
+        "type": "object",
+        "properties": {
+          "waste_id": { "type": "integer" },
+          "user_id": { "type": "integer" },
+          "type_id": { "type": "integer" },
+          "amount": { "type": "number" },
+          "description": { "type": "string" },
+          "status": { "type": "string", "enum": ["waiting", "reserved", "collected", "cancelled"] },
+          "record_date": { "type": "string", "format": "date-time" }
+        }
+      },
+      "WasteType": {
+        "type": "object",
+        "properties": {
+          "type_id": { "type": "integer" },
+          "type_name": { "type": "string" },
+          "official_unit": { "type": "string" },
+          "recycle_score": { "type": "integer", "minimum": 0, "maximum": 100 }
+        }
+      },
+      "Reservation": {
+        "type": "object",
+        "properties": {
+          "reservation_id": { "type": "integer" },
+          "waste_id": { "type": "integer" },
+          "collector_id": { "type": "integer" },
+          "pickup_datetime": { "type": "string", "format": "date-time" },
+          "status": { "type": "string", "enum": ["waiting", "reserved", "collected", "cancelled"] },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string" },
+          "error": { "type": "string" }
+        }
+      }
+    }
+  },
+  "paths": {
     "/auth/register": {
       "post": {
         "tags": ["Auth"],
-        "summary": "Register a new user",
-        "description": "Register with email and password. An OTP will be sent to verify the email.",
+        "summary": "Kayıt ol",
+        "description": "Yeni kullanıcı kaydı oluşturur. OTP doğrulaması gerektirir.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["email", "password", "fullName"],
+                "required": ["firstName", "lastName", "email", "phone", "password"],
                 "properties": {
-                  "email": { "type": "string", "format": "email", "example": "user@example.com" },
-                  "password": { "type": "string", "minLength": 6, "example": "password123" },
-                  "fullName": { "type": "string", "example": "John Doe" }
+                  "firstName": { "type": "string", "example": "Ahmet" },
+                  "lastName": { "type": "string", "example": "Yılmaz" },
+                  "email": { "type": "string", "example": "ahmet@test.com" },
+                  "phone": { "type": "string", "example": "+905551234567" },
+                  "password": { "type": "string", "example": "Test1234" }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": "Registration successful, OTP sent",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthResponse"
-                }
-              }
-            }
-          },
-          "400": { "description": "Validation error or email already exists" }
+          "201": { "description": "Kayıt başarılı, OTP gönderildi" },
+          "400": { "description": "Validasyon hatası" },
+          "409": { "description": "Email veya telefon zaten kayıtlı" }
         }
       }
     },
     "/auth/verify-otp": {
       "post": {
         "tags": ["Auth"],
-        "summary": "Verify OTP",
-        "description": "Verify the OTP sent to email to complete registration",
+        "summary": "OTP doğrula",
         "requestBody": {
           "required": true,
           "content": {
@@ -101,7 +136,7 @@
                 "type": "object",
                 "required": ["email", "otp"],
                 "properties": {
-                  "email": { "type": "string", "format": "email", "example": "user@example.com" },
+                  "email": { "type": "string" },
                   "otp": { "type": "string", "example": "123456" }
                 }
               }
@@ -109,50 +144,15 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OTP verified successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
-                }
-              }
-            }
-          },
-          "400": { "description": "Invalid or expired OTP" }
-        }
-      }
-    },
-    "/auth/resend-otp": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Resend OTP",
-        "description": "Resend verification OTP to email",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["email"],
-                "properties": {
-                  "email": { "type": "string", "format": "email", "example": "user@example.com" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "OTP sent successfully" },
-          "400": { "description": "User not found or already verified" }
+          "200": { "description": "Doğrulama başarılı, token döner" },
+          "400": { "description": "Geçersiz veya süresi dolmuş OTP" }
         }
       }
     },
     "/auth/login": {
       "post": {
         "tags": ["Auth"],
-        "summary": "Login",
-        "description": "Login with email and password",
+        "summary": "Giriş yap",
         "requestBody": {
           "required": true,
           "content": {
@@ -161,182 +161,537 @@
                 "type": "object",
                 "required": ["email", "password"],
                 "properties": {
-                  "email": { "type": "string", "format": "email", "example": "user@example.com" },
-                  "password": { "type": "string", "example": "password123" }
+                  "email": { "type": "string", "example": "ahmet@test.com" },
+                  "password": { "type": "string", "example": "Test1234" }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": {
-            "description": "Login successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
-                }
-              }
-            }
-          },
-          "401": { "description": "Invalid credentials" }
-        }
-      }
-    },
-    "/auth/google": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Google OAuth Login",
-        "description": "Login or register with Google. If new user, phone number is required.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["idToken"],
-                "properties": {
-                  "idToken": { "type": "string", "description": "Google ID Token" },
-                  "phone": { "type": "string", "description": "Phone number (required for new users)", "example": "+905551234567" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Login successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
-                }
-              }
-            }
-          },
-          "202": {
-            "description": "Phone number required for new user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean", "example": true },
-                    "requiresPhone": { "type": "boolean", "example": true },
-                    "tempToken": { "type": "string" },
-                    "user": {
-                      "type": "object",
-                      "properties": {
-                        "email": { "type": "string" },
-                        "fullName": { "type": "string" }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": { "description": "Invalid Google token" }
-        }
-      }
-    },
-    "/auth/google/complete": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Complete Google Registration",
-        "description": "Complete Google OAuth registration by providing phone number",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["tempToken", "phone"],
-                "properties": {
-                  "tempToken": { "type": "string", "description": "Temporary token from Google OAuth" },
-                  "phone": { "type": "string", "example": "+905551234567" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Registration completed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
-                }
-              }
-            }
-          },
-          "400": { "description": "Invalid or expired token" }
+          "200": { "description": "Giriş başarılı, token döner" },
+          "401": { "description": "Hatalı email veya şifre" }
         }
       }
     },
     "/auth/me": {
       "get": {
         "tags": ["Auth"],
-        "summary": "Get Current User",
-        "description": "Get the currently authenticated user's profile",
+        "summary": "Mevcut kullanıcı bilgisi",
         "security": [{ "bearerAuth": [] }],
         "responses": {
+          "200": { "description": "Kullanıcı bilgileri" },
+          "401": { "description": "Token geçersiz" }
+        }
+      }
+    },
+    "/waste/types": {
+      "get": {
+        "tags": ["Waste"],
+        "summary": "Atık türlerini listele",
+        "description": "Tüm atık türlerini getirir (Public)",
+        "responses": {
           "200": {
-            "description": "User profile",
+            "description": "Atık türleri listesi",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "success": { "type": "boolean" },
-                    "user": { "$ref": "#/components/schemas/User" }
+                    "count": { "type": "integer" },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/WasteType" }
+                    }
                   }
                 }
               }
             }
-          },
-          "401": { "description": "Unauthorized" }
-        }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "User": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "integer", "example": 1 },
-          "email": { "type": "string", "example": "user@example.com" },
-          "full_name": { "type": "string", "example": "John Doe" },
-          "phone": { "type": "string", "example": "+905551234567" },
-          "is_verified": { "type": "boolean", "example": true },
-          "auth_provider": { "type": "string", "enum": ["local", "google"], "example": "local" },
-          "created_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "AuthResponse": {
-        "type": "object",
-        "properties": {
-          "success": { "type": "boolean", "example": true },
-          "message": { "type": "string", "example": "Registration successful" }
-        }
-      },
-      "TokenResponse": {
-        "type": "object",
-        "properties": {
-          "success": { "type": "boolean", "example": true },
-          "message": { "type": "string" },
-          "token": { "type": "string", "description": "JWT Token" },
-          "user": { "$ref": "#/components/schemas/User" }
+          }
         }
       }
     },
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
+    "/waste": {
+      "get": {
+        "tags": ["Waste"],
+        "summary": "Aktif atıkları listele (VIEW kullanır)",
+        "description": "v_active_waste_details VIEW'ını kullanarak aktif atıkları listeler",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "city", "in": "query", "schema": { "type": "string" }, "description": "Şehre göre filtrele" },
+          { "name": "type_id", "in": "query", "schema": { "type": "integer" }, "description": "Atık türüne göre filtrele" },
+          { "name": "status", "in": "query", "schema": { "type": "string" }, "description": "Duruma göre filtrele" }
+        ],
+        "responses": {
+          "200": { "description": "Atık listesi" }
+        }
+      },
+      "post": {
+        "tags": ["Waste"],
+        "summary": "Yeni atık ekle (INSERT)",
+        "description": "CHECK constraint test edilebilir: amount > 0 AND amount <= 1000",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["type_id", "amount"],
+                "properties": {
+                  "type_id": { "type": "integer", "example": 1 },
+                  "amount": { "type": "number", "example": 5.5, "minimum": 0.01, "maximum": 1000 },
+                  "description": { "type": "string", "example": "Temiz karton kutular" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Atık eklendi" },
+          "400": { "description": "CHECK constraint ihlali" }
+        }
+      }
+    },
+    "/waste/search": {
+      "get": {
+        "tags": ["Waste"],
+        "summary": "Şehre göre ara (FUNCTION kullanır)",
+        "description": "fn_get_waste_by_city() PostgreSQL fonksiyonunu kullanır. INDEX (idx_users_city) üzerinden arama yapar.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "city", "in": "query", "required": true, "schema": { "type": "string" }, "example": "İstanbul" }
+        ],
+        "responses": {
+          "200": { "description": "Arama sonuçları" }
+        }
+      }
+    },
+    "/waste/my": {
+      "get": {
+        "tags": ["Waste"],
+        "summary": "Kendi atıklarım",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Kullanıcının atıkları" }
+        }
+      }
+    },
+    "/waste/{id}": {
+      "get": {
+        "tags": ["Waste"],
+        "summary": "Atık detayı",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Atık detayı" },
+          "404": { "description": "Bulunamadı" }
+        }
+      },
+      "put": {
+        "tags": ["Waste"],
+        "summary": "Atık güncelle (UPDATE + TRIGGER)",
+        "description": "Status 'collected' olursa TRIGGER çalışır ve çevresel puan hesaplanır",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type_id": { "type": "integer" },
+                  "amount": { "type": "number" },
+                  "description": { "type": "string" },
+                  "status": { "type": "string", "enum": ["waiting", "reserved", "collected", "cancelled"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Güncellendi. triggerMessage alanında TRIGGER mesajı döner" }
+        }
+      },
+      "delete": {
+        "tags": ["Waste"],
+        "summary": "Atık sil (DELETE + CASCADE)",
+        "description": "ON DELETE CASCADE: İlgili rezervasyonlar da silinir",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Silindi" }
+        }
+      }
+    },
+    "/reservations": {
+      "get": {
+        "tags": ["Reservations"],
+        "summary": "Rezervasyonları listele",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "waste_id", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Rezervasyon listesi" }
+        }
+      },
+      "post": {
+        "tags": ["Reservations"],
+        "summary": "Rezervasyon oluştur (SEQUENCE + TRIGGER)",
+        "description": "reservation_number_seq SEQUENCE'ını kullanır. TRIGGER otomatik olarak atık durumunu 'reserved' yapar.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["waste_id", "pickup_datetime"],
+                "properties": {
+                  "waste_id": { "type": "integer", "example": 1 },
+                  "pickup_datetime": { "type": "string", "format": "date-time", "example": "2026-01-10T14:00:00" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Rezervasyon oluşturuldu. reservationNumber ve triggerMessage döner" }
+        }
+      }
+    },
+    "/reservations/my/collector": {
+      "get": {
+        "tags": ["Reservations"],
+        "summary": "Toplayıcı olarak rezervasyonlarım",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Rezervasyonlar" } }
+      }
+    },
+    "/reservations/my/owner": {
+      "get": {
+        "tags": ["Reservations"],
+        "summary": "Atıklarıma yapılan rezervasyonlar",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Rezervasyonlar" } }
+      }
+    },
+    "/reservations/{id}": {
+      "get": {
+        "tags": ["Reservations"],
+        "summary": "Rezervasyon detayı",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Detay" } }
+      },
+      "put": {
+        "tags": ["Reservations"],
+        "summary": "Rezervasyon güncelle (TRIGGER)",
+        "description": "Status değiştiğinde TRIGGER çalışır: collected→atık toplandı, cancelled→atık tekrar listelenir",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": { "type": "string", "enum": ["waiting", "reserved", "collected", "cancelled"] },
+                  "pickup_datetime": { "type": "string", "format": "date-time" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Güncellendi. triggerMessage döner" } }
+      },
+      "delete": {
+        "tags": ["Reservations"],
+        "summary": "Rezervasyon sil",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Silindi" } }
+      }
+    },
+    "/reports/my": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Kişisel çevresel etki raporum",
+        "description": "Kullanıcının istatistikleri, puanı ve aylık raporu (FUNCTION + VIEW kullanır)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Kişisel rapor" } }
+      }
+    },
+    "/reports/user/{userId}/monthly": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Kullanıcı aylık raporu (CURSOR + RECORD)",
+        "description": "fn_get_user_monthly_report() fonksiyonu kullanır. CURSOR ve RECORD tanımı içerir.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "year", "in": "query", "schema": { "type": "integer" }, "example": 2026 },
+          { "name": "month", "in": "query", "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": { "200": { "description": "Aylık rapor" } }
+      }
+    },
+    "/reports/user/{userId}/score": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Kullanıcı toplam puanı (FUNCTION)",
+        "description": "fn_calculate_user_total_score() fonksiyonu kullanır",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Toplam puan" } }
+      }
+    },
+    "/reports/active-users": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Aktif kullanıcılar (UNION sorgusu)",
+        "description": "Hem atık paylaşan hem de toplayan kullanıcılar. UNION sorgusu kullanır.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Aktif kullanıcılar listesi" } }
+      }
+    },
+    "/reports/inactive-collectors": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Hiç rezervasyon yapmamışlar (EXCEPT sorgusu)",
+        "description": "EXCEPT sorgusu kullanır",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Pasif kullanıcılar" } }
+      }
+    },
+    "/reports/top-contributors": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "En çok katkı yapanlar (AGGREGATE + HAVING)",
+        "description": "COUNT, SUM, AVG, MAX + HAVING kullanır",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "minWasteCount", "in": "query", "schema": { "type": "integer" }, "description": "Minimum atık sayısı", "example": 2 }
+        ],
+        "responses": { "200": { "description": "En çok katkı yapanlar" } }
+      }
+    },
+    "/reports/waste-statistics": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Atık istatistikleri (AGGREGATE)",
+        "description": "COUNT, SUM, AVG, MIN, MAX, CASE WHEN kullanır",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "İstatistikler" } }
+      }
+    },
+    "/reports/monthly-overview": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Aylık genel bakış (VIEW)",
+        "description": "v_monthly_recycling_report VIEW'ını kullanır",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "year", "in": "query", "schema": { "type": "integer" }, "example": 2026 }
+        ],
+        "responses": { "200": { "description": "Aylık rapor" } }
+      }
+    },
+    "/reports/user-statistics": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Kullanıcı istatistikleri (VIEW)",
+        "description": "v_user_statistics VIEW'ını kullanır",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "İstatistikler" } }
+      }
+    },
+    "/reports/city-ranking": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "Şehir sıralaması (AGGREGATE + HAVING)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "minUsers", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Şehir sıralaması" } }
+      }
+    },
+    "/admin/dashboard": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Admin dashboard",
+        "description": "Sadece admin rolü erişebilir",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Dashboard verileri" }, "403": { "description": "Yetki yok" } }
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Tüm kullanıcıları listele",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "role", "in": "query", "schema": { "type": "string" } },
+          { "name": "city", "in": "query", "schema": { "type": "string" } },
+          { "name": "is_active", "in": "query", "schema": { "type": "boolean" } }
+        ],
+        "responses": { "200": { "description": "Kullanıcı listesi" } }
+      }
+    },
+    "/admin/users/{id}/role": {
+      "put": {
+        "tags": ["Admin"],
+        "summary": "Kullanıcı rolünü değiştir",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": { "type": "string", "enum": ["admin", "user"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Rol güncellendi" } }
+      }
+    },
+    "/admin/users/{id}/status": {
+      "put": {
+        "tags": ["Admin"],
+        "summary": "Kullanıcı aktifliğini değiştir",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "is_active": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Durum güncellendi" } }
+      }
+    },
+    "/admin/users/{id}": {
+      "delete": {
+        "tags": ["Admin"],
+        "summary": "Kullanıcı sil (CASCADE)",
+        "description": "ON DELETE CASCADE: Kullanıcının atıkları ve rezervasyonları da silinir",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Silindi" } }
+      }
+    },
+    "/admin/waste-types": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Atık türlerini listele (kullanım sayısıyla)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Atık türleri" } }
+      },
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Yeni atık türü ekle",
+        "description": "CHECK constraint: recycle_score 0-100 arası",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["type_name", "official_unit", "recycle_score"],
+                "properties": {
+                  "type_name": { "type": "string", "example": "Yeni Tür" },
+                  "official_unit": { "type": "string", "example": "kg" },
+                  "recycle_score": { "type": "integer", "minimum": 0, "maximum": 100, "example": 15 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Eklendi" } }
+      }
+    },
+    "/admin/waste-types/{id}": {
+      "put": {
+        "tags": ["Admin"],
+        "summary": "Atık türü güncelle",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type_name": { "type": "string" },
+                  "official_unit": { "type": "string" },
+                  "recycle_score": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Güncellendi" } }
+      },
+      "delete": {
+        "tags": ["Admin"],
+        "summary": "Atık türü sil (RESTRICT)",
+        "description": "ON DELETE RESTRICT: Kullanımda olan tür silinemez",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { 
+          "200": { "description": "Silindi" },
+          "400": { "description": "RESTRICT: Tür kullanımda, silinemez" }
+        }
+      }
+    },
+    "/admin/trigger-logs": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Trigger logları",
+        "description": "TRIGGER'ların çalışma kayıtları",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer" }, "example": 50 }
+        ],
+        "responses": { "200": { "description": "Log listesi" } }
       }
     }
   }

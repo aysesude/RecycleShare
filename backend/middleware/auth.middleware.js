@@ -72,8 +72,26 @@ const authorize = (...roles) => {
   };
 };
 
+// Require specific role
+const requireRole = (role) => {
+  return (req, res, next) => {
+    if (req.user.role !== role) {
+      return res.status(403).json({
+        success: false,
+        message: `Bu işlem için '${role}' yetkisi gerekli`
+      });
+    }
+    next();
+  };
+};
+
+// Alias for authenticate (for consistency)
+const authenticateToken = authenticate;
+
 module.exports = {
   authenticate,
+  authenticateToken,
   requireVerification,
-  authorize
+  authorize,
+  requireRole
 };

@@ -1,0 +1,533 @@
+const { query } = require('../config/database');
+
+// ============================================
+// ADMIN CONTROLLER
+// Sadece admin rolündeki kullanıcılar erişebilir
+// ============================================
+
+/**
+ * GET /api/admin/users
+ * Tüm kullanıcıları listele
+ */
+const getAllUsers = async (req, res) => {
+  try {
+    const { role, city, is_active } = req.query;
+
+    let sql = `
+      SELECT 
+        user_id, first_name, last_name, email, phone,
+        role, city, district, neighborhood,
+        is_verified, is_active, created_at
+      FROM users
+      WHERE 1=1
+    `;
+    const params = [];
+    let paramIndex = 1;
+
+    if (role) {
+      sql += ` AND role = $${paramIndex}`;
+      params.push(role);
+      paramIndex++;
+    }
+
+    if (city) {
+      sql += ` AND city = $${paramIndex}`;
+      params.push(city);
+      paramIndex++;
+    }
+
+    if (is_active !== undefined) {
+      sql += ` AND is_active = $${paramIndex}`;
+      params.push(is_active === 'true');
+      paramIndex++;
+    }
+
+    sql += ` ORDER BY created_at DESC`;
+
+    const result = await query(sql, params);
+
+    res.json({
+      success: true,
+      count: result.rows.length,
+      data: result.rows
+    });
+
+  } catch (error) {
+    console.error('getAllUsers error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Kullanıcılar listelenirken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * PUT /api/admin/users/:id/role
+ * Kullanıcı rolünü değiştir
+ */
+const updateUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!role || !['admin', 'user'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Geçersiz rol. Geçerli değerler: 'admin', 'user'"
+      });
+    }
+
+    const result = await query(`
+      UPDATE users 
+      SET role = $1 
+      WHERE user_id = $2
+      RETURNING user_id, first_name, last_name, email, role
+    `, [role, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Kullanıcı bulunamadı'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Kullanıcı rolü '${role}' olarak güncellendi`,
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('updateUserRole error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Rol güncellenirken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * PUT /api/admin/users/:id/status
+ * Kullanıcı durumunu değiştir (aktif/pasif)
+ */
+const updateUserStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_active } = req.body;
+
+    if (is_active === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'is_active değeri gerekli'
+      });
+    }
+
+    const result = await query(`
+      UPDATE users 
+      SET is_active = $1 
+      WHERE user_id = $2
+      RETURNING user_id, first_name, last_name, email, is_active
+    `, [is_active, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Kullanıcı bulunamadı'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Kullanıcı ${is_active ? 'aktifleştirildi' : 'deaktif edildi'}`,
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('updateUserStatus error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Durum güncellenirken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * DELETE /api/admin/users/:id
+ * Kullanıcı sil (CASCADE ile atıkları ve rezervasyonları da silinir)
+ */
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Kendi kendini silmeyi engelle
+    if (parseInt(id) === req.user.user_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Kendinizi silemezsiniz'
+      });
+    }
+
+    const userCheck = await query(
+      'SELECT user_id, first_name, last_name, email FROM users WHERE user_id = $1',
+      [id]
+    );
+
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Kullanıcı bulunamadı'
+      });
+    }
+
+    // CASCADE: Atıklar ve rezervasyonlar da silinir
+    await query('DELETE FROM users WHERE user_id = $1', [id]);
+
+    res.json({
+      success: true,
+      message: 'Kullanıcı ve tüm ilişkili veriler silindi (CASCADE)',
+      deletedUser: userCheck.rows[0]
+    });
+
+  } catch (error) {
+    console.error('deleteUser error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Kullanıcı silinirken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * GET /api/admin/waste-types
+ * Atık türlerini listele
+ */
+const getWasteTypes = async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT 
+        wt.*,
+        COUNT(w.waste_id) as usage_count
+      FROM waste_types wt
+      LEFT JOIN waste w ON wt.type_id = w.type_id
+      GROUP BY wt.type_id
+      ORDER BY wt.type_name
+    `);
+
+    res.json({
+      success: true,
+      count: result.rows.length,
+      data: result.rows
+    });
+
+  } catch (error) {
+    console.error('getWasteTypes error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Atık türleri alınırken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * POST /api/admin/waste-types
+ * Yeni atık türü ekle
+ */
+const createWasteType = async (req, res) => {
+  try {
+    const { type_name, official_unit, recycle_score } = req.body;
+
+    if (!type_name || !official_unit || recycle_score === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'type_name, official_unit ve recycle_score gerekli'
+      });
+    }
+
+    // CHECK constraint: recycle_score 0-100 arası
+    if (recycle_score < 0 || recycle_score > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'recycle_score 0-100 arasında olmalı'
+      });
+    }
+
+    const result = await query(`
+      INSERT INTO waste_types (type_name, official_unit, recycle_score)
+      VALUES ($1, $2, $3)
+      RETURNING *
+    `, [type_name, official_unit, recycle_score]);
+
+    res.status(201).json({
+      success: true,
+      message: 'Atık türü başarıyla eklendi',
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('createWasteType error:', error);
+    
+    if (error.message.includes('duplicate key')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bu atık türü zaten mevcut'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Atık türü eklenirken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * PUT /api/admin/waste-types/:id
+ * Atık türü güncelle
+ */
+const updateWasteType = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type_name, official_unit, recycle_score } = req.body;
+
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (type_name !== undefined) {
+      updates.push(`type_name = $${paramIndex}`);
+      values.push(type_name);
+      paramIndex++;
+    }
+
+    if (official_unit !== undefined) {
+      updates.push(`official_unit = $${paramIndex}`);
+      values.push(official_unit);
+      paramIndex++;
+    }
+
+    if (recycle_score !== undefined) {
+      if (recycle_score < 0 || recycle_score > 100) {
+        return res.status(400).json({
+          success: false,
+          message: 'recycle_score 0-100 arasında olmalı'
+        });
+      }
+      updates.push(`recycle_score = $${paramIndex}`);
+      values.push(recycle_score);
+      paramIndex++;
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Güncellenecek alan belirtilmedi'
+      });
+    }
+
+    values.push(id);
+    const sql = `
+      UPDATE waste_types 
+      SET ${updates.join(', ')} 
+      WHERE type_id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const result = await query(sql, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Atık türü bulunamadı'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Atık türü güncellendi',
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('updateWasteType error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Atık türü güncellenirken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * DELETE /api/admin/waste-types/:id
+ * Atık türü sil (RESTRICT: Kullanımda ise silinemez)
+ */
+const deleteWasteType = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Kullanımda mı kontrol et
+    const usageCheck = await query(
+      'SELECT COUNT(*) FROM waste WHERE type_id = $1',
+      [id]
+    );
+
+    if (parseInt(usageCheck.rows[0].count) > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Bu atık türü ${usageCheck.rows[0].count} atıkta kullanılıyor. RESTRICT kısıtı nedeniyle silinemez.`,
+        usageCount: parseInt(usageCheck.rows[0].count)
+      });
+    }
+
+    const result = await query(
+      'DELETE FROM waste_types WHERE type_id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Atık türü bulunamadı'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Atık türü silindi',
+      deletedType: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('deleteWasteType error:', error);
+    
+    // RESTRICT constraint hatası
+    if (error.message.includes('violates foreign key constraint')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bu atık türü kullanımda olduğu için silinemez (RESTRICT)',
+        error: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Atık türü silinirken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * GET /api/admin/trigger-logs
+ * Trigger loglarını görüntüle
+ */
+const getTriggerLogs = async (req, res) => {
+  try {
+    const { limit } = req.query;
+    const maxRows = limit || 50;
+
+    const result = await query(`
+      SELECT * FROM trigger_logs
+      ORDER BY created_at DESC
+      LIMIT $1
+    `, [maxRows]);
+
+    res.json({
+      success: true,
+      message: 'Trigger logları',
+      count: result.rows.length,
+      data: result.rows
+    });
+
+  } catch (error) {
+    console.error('getTriggerLogs error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Trigger logları alınırken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * GET /api/admin/dashboard
+ * Admin dashboard istatistikleri
+ */
+const getDashboard = async (req, res) => {
+  try {
+    // Kullanıcı sayıları
+    const userStats = await query(`
+      SELECT 
+        COUNT(*) as total_users,
+        COUNT(CASE WHEN role = 'admin' THEN 1 END) as admin_count,
+        COUNT(CASE WHEN role = 'user' THEN 1 END) as user_count,
+        COUNT(CASE WHEN is_active = true THEN 1 END) as active_users
+      FROM users
+    `);
+
+    // Atık sayıları
+    const wasteStats = await query(`
+      SELECT 
+        COUNT(*) as total_waste,
+        COUNT(CASE WHEN status = 'waiting' THEN 1 END) as waiting_count,
+        COUNT(CASE WHEN status = 'reserved' THEN 1 END) as reserved_count,
+        COUNT(CASE WHEN status = 'collected' THEN 1 END) as collected_count,
+        COALESCE(SUM(amount), 0) as total_amount
+      FROM waste
+    `);
+
+    // Rezervasyon sayıları
+    const reservationStats = await query(`
+      SELECT 
+        COUNT(*) as total_reservations,
+        COUNT(CASE WHEN status = 'waiting' THEN 1 END) as pending_count,
+        COUNT(CASE WHEN status = 'collected' THEN 1 END) as completed_count
+      FROM reservations
+    `);
+
+    // Son trigger aktiviteleri
+    const recentTriggers = await query(`
+      SELECT trigger_name, message, created_at
+      FROM trigger_logs
+      ORDER BY created_at DESC
+      LIMIT 5
+    `);
+
+    res.json({
+      success: true,
+      data: {
+        users: userStats.rows[0],
+        waste: wasteStats.rows[0],
+        reservations: reservationStats.rows[0],
+        recentTriggerActivity: recentTriggers.rows
+      }
+    });
+
+  } catch (error) {
+    console.error('getDashboard error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Dashboard verisi alınırken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
+module.exports = {
+  getAllUsers,
+  updateUserRole,
+  updateUserStatus,
+  deleteUser,
+  getWasteTypes,
+  createWasteType,
+  updateWasteType,
+  deleteWasteType,
+  getTriggerLogs,
+  getDashboard
+};

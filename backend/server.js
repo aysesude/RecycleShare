@@ -4,6 +4,10 @@ const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger.json');
 const authRoutes = require('./routes/auth.routes');
+const wasteRoutes = require('./routes/waste.routes');
+const reservationRoutes = require('./routes/reservation.routes');
+const reportRoutes = require('./routes/report.routes');
+const adminRoutes = require('./routes/admin.routes');
 const { initializeDatabase } = require('./config/database');
 
 const app = express();
@@ -53,6 +57,10 @@ app.get('/api/auth/health', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/waste', wasteRoutes);
+app.use('/api/reservations', reservationRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
