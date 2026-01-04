@@ -16,7 +16,6 @@ import { FiArrowLeft, FiBox, FiCloud, FiUsers } from "react-icons/fi";
  *  - Ensure Tailwind is configured for your project.
  *  - Install react-icons if not already: npm install react-icons
  */
-
 const monthlyData = [
   { month: "Jan", value: 24 },
   { month: "Feb", value: 36 },
