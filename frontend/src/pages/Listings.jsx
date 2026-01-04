@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import toast from 'react-hot-toast'
@@ -10,19 +10,39 @@ const Listings = () => {
   const { user } = useAuth()
 
   const [form, setForm] = useState({
-    title: '',
     description: '',
     weight: '',
-    type: '',
-    image_url: '',
+    type_id: '',
     latitude: '',
-    longitude: '',
-    address: ''
+    longitude: ''
   })
 
+  const [userAddress, setUserAddress] = useState('')
+  const [editingAddress, setEditingAddress] = useState(false)
+
+  const [wasteTypes, setWasteTypes] = useState([])
   const [listings, setListings] = useState([])
   const [showListings, setShowListings] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  // Fetch waste types on mount
+  useEffect(() => {
+    const fetchWasteTypes = async () => {
+      try {
+        const res = await api.get('/waste/types')
+        setWasteTypes(res.data?.data || [])
+      } catch (err) {
+        toast.error('Failed to load waste types')
+      }
+    }
+    
+    // Set user address from logged-in user
+    if (user?.address) {
+      setUserAddress(user.address)
+    }
+    
+    fetchWasteTypes()
+  }, [user])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -33,19 +53,16 @@ const Listings = () => {
     try {
       setLoading(true)
       const payload = {
-        title: form.title,
         description: form.description,
-        weight: parseFloat(form.weight) || 0,
-        type: form.type,
-        image_url: form.image_url,
+        amount: parseFloat(form.weight) || 0,
+        type_id: parseInt(form.type_id),
         latitude: form.latitude || null,
-        longitude: form.longitude || null,
-        address: form.address || ''
+        longitude: form.longitude || null
       }
 
-      const res = await api.post('/listings', payload)
-      toast.success(res?.data?.message || 'Listing created')
-      setForm({ title: '', description: '', weight: '', type: '', image_url: '', latitude: '', longitude: '', address: '' })
+      const res = await api.post('/waste', payload)
+      toast.success(res?.data?.message || 'Waste item created')
+      setForm({ description: '', weight: '', type_id: '', latitude: '', longitude: '' })
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Failed to create listing')
     } finally {
@@ -56,7 +73,7 @@ const Listings = () => {
   const handleShowListings = async () => {
     try {
       setLoading(true)
-      const res = await api.get('/listings')
+      const res = await api.get('/waste/my')
       setListings(res.data?.data || res.data || [])
       setShowListings(true)
     } catch (err) {
@@ -79,102 +96,120 @@ const Listings = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Create Listing Form */}
           <div className="eco-card p-6">
-            <h2 className="text-lg font-semibold mb-4">Add New Listing</h2>
+            <h2 className="text-lg font-semibold mb-4">Add New Waste Item</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="label">
-                  <span className="label-text">Title</span>
+                  <span className="label-text">Description</span>
                 </label>
-                <input name="title" value={form.title} onChange={handleChange} required className="input input-bordered w-full" />
-              </div>
-
-              <div>
-                <label className="label"><span className="label-text">Description</span></label>
-                <textarea name="description" value={form.description} onChange={handleChange} className="textarea textarea-bordered w-full" rows={3} />
+                <textarea name="description" value={form.description} onChange={handleChange} className="textarea textarea-bordered w-full" rows={3} placeholder="Describe the waste item..." />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="label"><span className="label-text">Weight (kg)</span></label>
-                  <input name="weight" value={form.weight} onChange={handleChange} type="number" step="0.1" className="input input-bordered w-full" />
+                  <input name="weight" value={form.weight} onChange={handleChange} type="number" step="0.1" className="input input-bordered w-full" required />
                 </div>
                 <div>
-                  <label className="label"><span className="label-text">Type</span></label>
-                  <input name="type" value={form.type} onChange={handleChange} placeholder="Plastic, Paper, Glass..." className="input input-bordered w-full" />
+                  <label className="label"><span className="label-text">Waste Type</span></label>
+                  <select name="type_id" value={form.type_id} onChange={handleChange} required className="select select-bordered w-full">
+                    <option value="">Select Type</option>
+                    {wasteTypes.map((wt) => (
+                      <option key={wt.type_id} value={wt.type_id}>{wt.type_name}</option>
+                    ))}
+                  </select>
                 </div>
-              </div>
-
-              <div>
-                <label className="label"><span className="label-text">Image URL</span></label>
-                <input name="image_url" value={form.image_url} onChange={handleChange} className="input input-bordered w-full" />
-              </div>
-
-              <div>
-                <label className="label"><span className="label-text">Address (optional)</span></label>
-                <input name="address" value={form.address} onChange={handleChange} className="input input-bordered w-full" />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <input name="latitude" value={form.latitude} onChange={handleChange} placeholder="Latitude" className="input input-bordered w-full" />
-                <input name="longitude" value={form.longitude} onChange={handleChange} placeholder="Longitude" className="input input-bordered w-full" />
+                <input name="latitude" value={form.latitude} onChange={handleChange} placeholder="Latitude (optional)" type="number" step="0.0001" className="input input-bordered w-full" />
+                <input name="longitude" value={form.longitude} onChange={handleChange} placeholder="Longitude (optional)" type="number" step="0.0001" className="input input-bordered w-full" />
               </div>
 
               <div className="flex items-center gap-3">
                 <button type="submit" disabled={loading} className="btn btn-primary">
-                  {loading ? 'Saving...' : 'Create Listing'}
+                  {loading ? 'Saving...' : 'Add Item'}
                 </button>
-                <button type="button" onClick={() => setForm({ title: '', description: '', weight: '', type: '', image_url: '', latitude: '', longitude: '', address: '' })} className="btn btn-ghost">Clear</button>
+                <button type="button" onClick={() => setForm({ description: '', weight: '', type_id: '', latitude: '', longitude: '' })} className="btn btn-ghost">Clear</button>
               </div>
             </form>
 
             <div className="mt-4 text-sm text-gray-500">
-              You are creating this listing as <strong>{user?.firstName} {user?.lastName}</strong>
+              Location: <strong>{userAddress || 'Not set'}</strong>
             </div>
           </div>
 
-          {/* Right: Listings Panel */}
-          <div className="eco-card p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">Listings</h2>
-              <div className="flex items-center gap-2">
-                <button onClick={handleShowListings} className="btn btn-outline">Show Listings</button>
-                <button onClick={() => { setShowListings(false); setListings([]) }} className="btn btn-ghost">Hide</button>
+          {/* Right: Address & Listings Panel */}
+          <div className="space-y-6">
+            {/* Address Section */}
+            <div className="eco-card p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">Your Address</h2>
+                <button onClick={() => setEditingAddress(!editingAddress)} className="btn btn-ghost btn-sm">
+                  {editingAddress ? 'Cancel' : 'Edit'}
+                </button>
               </div>
+
+              {editingAddress ? (
+                <div className="space-y-3">
+                  <input 
+                    type="text" 
+                    value={userAddress} 
+                    onChange={(e) => setUserAddress(e.target.value)} 
+                    placeholder="Enter your address" 
+                    className="input input-bordered w-full" 
+                  />
+                  <button onClick={() => { setEditingAddress(false); toast.success('Address saved') }} className="btn btn-sm btn-primary">Save Address</button>
+                </div>
+              ) : (
+                <p className="text-gray-700">{userAddress || 'No address set. Edit to add your location.'}</p>
+              )}
             </div>
 
-            {loading && !showListings && (
-              <div className="flex items-center justify-center py-8">
-                <span className="loading loading-spinner loading-lg text-emerald-500"></span>
+            {/* Listings Section */}
+            <div className="eco-card p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">My Waste Items</h2>
+                <div className="flex items-center gap-2">
+                  <button onClick={handleShowListings} className="btn btn-outline btn-sm">Refresh</button>
+                  <button onClick={() => { setShowListings(false); setListings([]) }} className="btn btn-ghost btn-sm">Hide</button>
+                </div>
               </div>
-            )}
 
-            {showListings && (
-              <div className="space-y-3">
-                {listings.length === 0 && (
-                  <div className="text-sm text-gray-500">No listings found.</div>
-                )}
+              {loading && !showListings && (
+                <div className="flex items-center justify-center py-8">
+                  <span className="loading loading-spinner loading-lg text-emerald-500"></span>
+                </div>
+              )}
 
-                {listings.map((l) => (
-                  <div key={l.listing_id || l.id} className="p-3 border rounded-lg flex gap-3 items-start">
-                    {l.image_url ? (
-                      <img src={l.image_url} alt={l.title} className="w-20 h-20 object-cover rounded-md" />
-                    ) : (
-                      <div className="w-20 h-20 bg-eco-100 rounded-md flex items-center justify-center text-gray-500">No Image</div>
-                    )}
-                    <div>
-                      <h3 className="font-semibold">{l.title || l.name}</h3>
-                      <p className="text-sm text-gray-600">{l.description}</p>
-                      <div className="text-xs text-gray-500 mt-2">{l.type} • {l.weight} kg</div>
-                      {l.address && <div className="text-xs text-gray-500">{l.address}</div>}
+              {showListings && (
+                <div className="space-y-3">
+                  {listings.length === 0 && (
+                    <div className="text-sm text-gray-500">No waste items yet. Add one above!</div>
+                  )}
+
+                  {listings.map((l) => (
+                    <div key={l.waste_id || l.id} className="p-3 border rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-semibold">{l.waste_type_name || l.type}</h3>
+                          <p className="text-sm text-gray-600">{l.description}</p>
+                          <div className="text-xs text-gray-500 mt-2 space-y-1">
+                            <div>Amount: {l.amount || l.weight} kg</div>
+                            <div>Status: <span className="badge badge-sm badge-success">{l.status || 'waiting'}</span></div>
+                            {l.record_date && <div>Added: {new Date(l.record_date).toLocaleDateString()}</div>}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
 
-            {!showListings && (
-              <div className="text-sm text-gray-500">Press "Show Listings" to load available listings.</div>
-            )}
+              {!showListings && (
+                <div className="text-sm text-gray-500">Press "Refresh" to load your waste items.</div>
+              )}
+            </div>
           </div>
         </div>
       </div>
