@@ -12,7 +12,7 @@ const Listings = () => {
   const [form, setForm] = useState({
     description: '',
     weight: '',
-    type_id: '',
+    type_id: ''
   })
 
   const [addressFields, setAddressFields] = useState({
@@ -135,10 +135,10 @@ const Listings = () => {
             <FiArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-2xl font-bold">Start Recycling — Create & Browse Listings</h1>
-                <div>
-                  <label className="label"><span className="label-text">Weight ({weightUnit})</span></label>
-                  <input name="weight" value={form.weight} onChange={handleChange} type="number" step={weightUnit === 'adet' ? '1' : '0.1'} placeholder={`Enter amount (${weightUnit})`} className="input input-bordered w-full" required />
-                </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left: Create Listing Form */}
           <div className="eco-card p-6">
             <h2 className="text-lg font-semibold mb-4">Add New Waste Item</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -151,8 +151,8 @@ const Listings = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="label"><span className="label-text">Weight </span></label>
-                  <input name="weight" value={form.weight} onChange={handleChange} type="number" step="0.1" className="input input-bordered w-full" required />
+                  <label className="label"><span className="label-text">Weight ({weightUnit})</span></label>
+                  <input name="weight" value={form.weight} onChange={handleChange} type="number" step={weightUnit === 'adet' ? '1' : '0.1'} placeholder={`Enter amount (${weightUnit})`} className="input input-bordered w-full" required />
                 </div>
                 <div>
                   <label className="label"><span className="label-text">Waste Type</span></label>
@@ -170,7 +170,7 @@ const Listings = () => {
                 <button type="submit" disabled={loading} className="btn btn-primary">
                   {loading ? 'Saving...' : 'Add Item'}
                 </button>
-                <button type="button" onClick={() => setForm({ description: '', weight: '', type_id: '', latitude: '', longitude: '' })} className="btn btn-ghost">Clear</button>
+                <button type="button" onClick={() => setForm({ description: '', weight: '', type_id: '' })} className="btn btn-ghost">Clear</button>
               </div>
             </form>
 
