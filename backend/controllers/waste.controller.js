@@ -463,8 +463,8 @@ const getWasteTypes = async (req, res) => {
 };
 const getImpactStats = async (req, res) => {
   try {
-    const userId = req.user.id; 
-    const result = await query('SELECT COUNT(*) as total FROM wastes WHERE user_id = $1', [userId]);
+    const userId = req.user.user_id; 
+    const result = await query('SELECT COUNT(*) as total FROM waste WHERE user_id = $1', [userId]);
     const totalItems = parseInt(result.rows[0].total) || 0;
 
     res.json({
