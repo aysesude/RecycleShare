@@ -10,15 +10,14 @@ const ViewImpact = () => {
     itemsShared: 0,
     co2Saved: "0.0",
     communityConnections: 0,
-    monthlyProgress: [] // Canlı veriler buraya dolacak
+    monthlyProgress: [] 
   });
 
   useEffect(() => {
     const fetchImpactData = async () => {
       try {
         const token = localStorage.getItem('token'); 
-        // Vercel kullanıyorsan localhost'u kendi backend linkinle değiştirmeyi unutma
-        const response = await axios.get('http://localhost:5000/api/waste/stats', {
+        const response = await axios.get('https://recycleshare.onrender.com/api/waste/stats', {
           headers: { Authorization: `Bearer ${token}` }
         });
 
