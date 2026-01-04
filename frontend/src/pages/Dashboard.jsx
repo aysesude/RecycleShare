@@ -147,7 +147,7 @@ const Dashboard = () => {
                   </div>
                 </button>
 
-                <button onClick={() => navigate('/browselistings')} className="flex items-center gap-4 p-4 bg-eco-50 rounded-xl hover:bg-eco-100 transition-colors group">
+                <button onClick={() => navigate('/browse')} className="flex items-center gap-4 p-4 bg-eco-50 rounded-xl hover:bg-eco-100 transition-colors group">
                   <div className="w-12 h-12 bg-eco-gradient rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                     🔍
                   </div>
