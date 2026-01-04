@@ -490,7 +490,8 @@ const googleAuthComplete = async (req, res) => {
 const getCurrentUser = async (req, res) => {
   try {
     const result = await query(
-      `SELECT user_id, first_name, last_name, email, phone, role, profile_picture, is_verified, created_at
+      `SELECT user_id, first_name, last_name, email, phone, role, profile_picture, is_verified, created_at,
+       city, district, neighborhood, street, address_details
        FROM users WHERE user_id = $1`,
       [req.user.user_id]
     );
@@ -516,7 +517,12 @@ const getCurrentUser = async (req, res) => {
           role: user.role,
           profilePicture: user.profile_picture,
           isVerified: user.is_verified,
-          createdAt: user.created_at
+          createdAt: user.created_at,
+          city: user.city,
+          district: user.district,
+          neighborhood: user.neighborhood,
+          street: user.street,
+          address_details: user.address_details
         }
       }
     });
@@ -529,6 +535,68 @@ const getCurrentUser = async (req, res) => {
   }
 };
 
+// ==========================================
+// UPDATE CURRENT USER PROFILE (address fields)
+// PUT /api/auth/me
+const updateCurrentUser = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const { city, district, neighborhood, street, address_details } = req.body;
+
+    // Only update provided fields
+    const updates = [];
+    const values = [];
+    let idx = 1;
+
+    if (city !== undefined) { updates.push(`city = $${idx++}`); values.push(city) }
+    if (district !== undefined) { updates.push(`district = $${idx++}`); values.push(district) }
+    if (neighborhood !== undefined) { updates.push(`neighborhood = $${idx++}`); values.push(neighborhood) }
+    if (street !== undefined) { updates.push(`street = $${idx++}`); values.push(street) }
+    if (address_details !== undefined) { updates.push(`address_details = $${idx++}`); values.push(address_details) }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ success: false, message: 'No fields to update' });
+    }
+
+    values.push(userId);
+    const sql = `UPDATE users SET ${updates.join(', ')} WHERE user_id = $${idx} RETURNING user_id, first_name, last_name, email, phone, role, profile_picture, is_verified, city, district, neighborhood, street, address_details, created_at`;
+
+    const result = await query(sql, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const u = result.rows[0];
+
+    res.json({
+      success: true,
+      message: 'Profile updated',
+      data: {
+        user: {
+          userId: u.user_id,
+          firstName: u.first_name,
+          lastName: u.last_name,
+          email: u.email,
+          phone: u.phone,
+          role: u.role,
+          profilePicture: u.profile_picture,
+          isVerified: u.is_verified,
+          city: u.city,
+          district: u.district,
+          neighborhood: u.neighborhood,
+          street: u.street,
+          address_details: u.address_details,
+          createdAt: u.created_at
+        }
+      }
+    });
+  } catch (error) {
+    console.error('updateCurrentUser error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update profile', error: error.message });
+  }
+};
+
 module.exports = {
   register,
   verifyOTP,
@@ -536,5 +604,6 @@ module.exports = {
   login,
   googleAuth,
   googleAuthComplete,
-  getCurrentUser
+  getCurrentUser,
+  updateCurrentUser
 };

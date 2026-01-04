@@ -11,6 +11,8 @@ const {
   getCurrentUser
 } = require('../controllers/auth.controller');
 
+const { updateCurrentUser } = require('../controllers/auth.controller');
+
 const {
   registerValidation,
   loginValidation,
@@ -37,5 +39,6 @@ router.post('/google/complete', googleAuthCompleteValidation, validate, googleAu
 
 // Protected Routes
 router.get('/me', authenticate, getCurrentUser);
+router.put('/me', authenticate, updateCurrentUser);
 
 module.exports = router;

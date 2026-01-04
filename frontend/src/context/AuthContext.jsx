@@ -42,13 +42,26 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = async (email, password) => {
     const response = await authAPI.login({ email, password })
-    
+
     if (response.success && response.data.token) {
       localStorage.setItem('token', response.data.token)
-      localStorage.setItem('user', JSON.stringify(response.data.user))
-      setUser(response.data.user)
+
+      // Refresh full user from /auth/me to ensure address and latest fields
+      try {
+        const me = await authAPI.getCurrentUser()
+        if (me.success && me.data?.user) {
+          localStorage.setItem('user', JSON.stringify(me.data.user))
+          setUser(me.data.user)
+        } else {
+          localStorage.setItem('user', JSON.stringify(response.data.user))
+          setUser(response.data.user)
+        }
+      } catch (e) {
+        localStorage.setItem('user', JSON.stringify(response.data.user))
+        setUser(response.data.user)
+      }
     }
-    
+
     return response
   }
 
@@ -61,13 +74,24 @@ export const AuthProvider = ({ children }) => {
   // Verify OTP function
   const verifyOTP = async (email, code) => {
     const response = await authAPI.verifyOTP({ email, code })
-    
+
     if (response.success && response.data.token) {
       localStorage.setItem('token', response.data.token)
-      localStorage.setItem('user', JSON.stringify(response.data.user))
-      setUser(response.data.user)
+      try {
+        const me = await authAPI.getCurrentUser()
+        if (me.success && me.data?.user) {
+          localStorage.setItem('user', JSON.stringify(me.data.user))
+          setUser(me.data.user)
+        } else {
+          localStorage.setItem('user', JSON.stringify(response.data.user))
+          setUser(response.data.user)
+        }
+      } catch (e) {
+        localStorage.setItem('user', JSON.stringify(response.data.user))
+        setUser(response.data.user)
+      }
     }
-    
+
     return response
   }
 
@@ -80,27 +104,48 @@ export const AuthProvider = ({ children }) => {
   // Google auth function
   const googleAuth = async (credential) => {
     const response = await authAPI.googleAuth(credential)
-    
+
     if (response.success && response.data.token) {
-      // Full login successful
       localStorage.setItem('token', response.data.token)
-      localStorage.setItem('user', JSON.stringify(response.data.user))
-      setUser(response.data.user)
+      try {
+        const me = await authAPI.getCurrentUser()
+        if (me.success && me.data?.user) {
+          localStorage.setItem('user', JSON.stringify(me.data.user))
+          setUser(me.data.user)
+        } else {
+          localStorage.setItem('user', JSON.stringify(response.data.user))
+          setUser(response.data.user)
+        }
+      } catch (e) {
+        localStorage.setItem('user', JSON.stringify(response.data.user))
+        setUser(response.data.user)
+      }
     }
-    
+
     return response
   }
 
   // Complete Google auth with phone
   const googleAuthComplete = async (data) => {
     const response = await authAPI.googleAuthComplete(data)
-    
+
     if (response.success && response.data.token) {
       localStorage.setItem('token', response.data.token)
-      localStorage.setItem('user', JSON.stringify(response.data.user))
-      setUser(response.data.user)
+      try {
+        const me = await authAPI.getCurrentUser()
+        if (me.success && me.data?.user) {
+          localStorage.setItem('user', JSON.stringify(me.data.user))
+          setUser(me.data.user)
+        } else {
+          localStorage.setItem('user', JSON.stringify(response.data.user))
+          setUser(response.data.user)
+        }
+      } catch (e) {
+        localStorage.setItem('user', JSON.stringify(response.data.user))
+        setUser(response.data.user)
+      }
     }
-    
+
     return response
   }
 

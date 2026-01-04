@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
-import { FiArrowLeft } from 'react-icons/fi'
+import { FiArrowLeft, FiTrash } from 'react-icons/fi'
 
 const Listings = () => {
   const navigate = useNavigate()
@@ -30,6 +30,8 @@ const Listings = () => {
   const [listings, setListings] = useState([])
   const [showListings, setShowListings] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [idToDelete, setIdToDelete] = useState(null)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   // Fetch waste types on mount
   useEffect(() => {
@@ -98,6 +100,29 @@ const Listings = () => {
       setShowListings(true)
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Failed to fetch listings')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Open confirmation modal
+  const handleDelete = (id) => {
+    setIdToDelete(id)
+    setConfirmDeleteOpen(true)
+  }
+
+  // Confirmed delete
+  const handleConfirmDelete = async () => {
+    if (!idToDelete) return
+    try {
+      setLoading(true)
+      const res = await api.delete(`/waste/${idToDelete}`)
+      toast.success(res.data?.message || 'Item deleted')
+      setListings((prev) => prev.filter((it) => (it.waste_id || it.id) !== idToDelete))
+      setIdToDelete(null)
+      setConfirmDeleteOpen(false)
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Delete failed')
     } finally {
       setLoading(false)
     }
@@ -184,15 +209,20 @@ const Listings = () => {
                       <input name="address_details" value={addressFields.address_details} onChange={handleAddressChange} placeholder="Address details (apt, floor, notes)" className="input input-bordered w-full" />
                     </div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => {
-                        setEditingAddress(false);
-                        // persist locally to keep UI consistent
+                      <button onClick={async () => {
                         try {
-                          const stored = JSON.parse(localStorage.getItem('user') || '{}')
-                          const updated = { ...stored, city: addressFields.city, district: addressFields.district, neighborhood: addressFields.neighborhood, street: addressFields.street, address_details: addressFields.address_details }
-                          localStorage.setItem('user', JSON.stringify(updated))
-                        } catch (e) {}
-                        toast.success('Address saved')
+                          setEditingAddress(false);
+                          const res = await api.put('/auth/me', addressFields);
+                          // update localStorage user object if present
+                          try {
+                            const stored = JSON.parse(localStorage.getItem('user') || '{}')
+                            const updated = { ...stored, city: res.data?.data?.user?.city || addressFields.city, district: res.data?.data?.user?.district || addressFields.district, neighborhood: res.data?.data?.user?.neighborhood || addressFields.neighborhood, street: res.data?.data?.user?.street || addressFields.street, address_details: res.data?.data?.user?.address_details || addressFields.address_details }
+                            localStorage.setItem('user', JSON.stringify(updated))
+                          } catch (e) {}
+                          toast.success(res.data?.message || 'Address saved')
+                        } catch (err) {
+                          toast.error(err.response?.data?.message || err.message || 'Failed to save address')
+                        }
                       }} className="btn btn-sm btn-primary">Save Address</button>
                       <button onClick={() => { setEditingAddress(false); setAddressFields({ city: user?.city||'', district: user?.district||'', neighborhood: user?.neighborhood||'', street: user?.street||'', address_details: user?.address_details||'' }) }} className="btn btn-sm btn-ghost">Reset</button>
                     </div>
@@ -230,16 +260,22 @@ const Listings = () => {
                   {listings.map((l) => (
                     <div key={l.waste_id || l.id} className="p-3 border rounded-lg">
                       <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-semibold">{l.waste_type_name || l.type}</h3>
-                          <p className="text-sm text-gray-600">{l.description}</p>
-                          <div className="text-xs text-gray-500 mt-2 space-y-1">
-                            <div>Amount: {l.amount || l.weight} kg</div>
-                            <div>Status: <span className="badge badge-sm badge-success">{l.status || 'waiting'}</span></div>
-                            {l.record_date && <div>Added: {new Date(l.record_date).toLocaleDateString()}</div>}
+                            <div>
+                              <h3 className="font-semibold">{l.waste_type_name || l.type}</h3>
+                              <p className="text-sm text-gray-600">{l.description}</p>
+                              <div className="text-xs text-gray-500 mt-2 space-y-1">
+                                <div>Amount: {l.amount || l.weight} kg</div>
+                                <div>Status: <span className="badge badge-sm badge-success">{l.status || 'waiting'}</span></div>
+                                {l.record_date && <div>Added: {new Date(l.record_date).toLocaleDateString()}</div>}
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <button onClick={() => handleDelete(l.waste_id || l.id)} className="btn btn-sm btn-error flex items-center gap-2">
+                                <FiTrash className="w-3 h-3" />
+                                Delete
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -251,6 +287,18 @@ const Listings = () => {
             </div>
           </div>
         </div>
+        {confirmDeleteOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white rounded-lg shadow-lg w-11/12 max-w-sm p-6">
+              <h3 className="text-lg font-semibold mb-2">Confirm Delete</h3>
+              <p className="text-sm text-gray-600 mb-4">Are you sure you want to delete this waste item? This action cannot be undone.</p>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => { setConfirmDeleteOpen(false); setIdToDelete(null) }} className="btn btn-ghost">Cancel</button>
+                <button onClick={handleConfirmDelete} className="btn btn-error">Delete</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
