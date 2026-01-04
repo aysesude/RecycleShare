@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiBox, FiCloud, FiUsers } from "react-icons/fi";
 
@@ -30,20 +31,34 @@ const monthlyData = [
   { month: "Nov", value: 220 },
   { month: "Dec", value: 240 },
 ];
-
-const stats = {
-  itemsShared: 1248,
-  co2Saved: 872.5,
-  communityConnections: 342,
-};
-
-function formatNumber(n) {
-  return n.toLocaleString();
-}
-
 const ViewImpact = () => {
   const navigate = useNavigate();
+const [stats, setStats] = useState({
+    itemsShared: 0,
+    co2Saved: "0.0",
+    communityConnections: 0
+  });
+  useEffect(() => {
+    const fetchImpactData = async () => {
+      try {
+        const token = localStorage.getItem('token'); 
+        const response = await axios.get('http://localhost:5000/api/waste/stats', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
+        if (response.data.success) {
+          setStats({
+            itemsShared: response.data.data.itemsShared,
+            co2Saved: response.data.data.co2Saved,
+            communityConnections: response.data.data.connections || 0
+          });
+        }
+      } catch (error) {
+        console.error("Veri çekme hatası:", error);
+      }
+    };
+    fetchImpactData();
+  }, []);
   const maxValue = Math.max(...monthlyData.map((d) => d.value));
   const chartHeight = 160; // px
 
@@ -76,7 +91,7 @@ const ViewImpact = () => {
             <div>
               <div className="text-sm text-emerald-600">Items Shared</div>
               <div className="text-2xl font-semibold text-emerald-800">
-                {formatNumber(stats.itemsShared)}
+                {stats.itemsShared}
               </div>
             </div>
           </div>
@@ -88,7 +103,7 @@ const ViewImpact = () => {
             <div>
               <div className="text-sm text-emerald-600">CO2 Saved (kg)</div>
               <div className="text-2xl font-semibold text-emerald-800">
-                {formatNumber(stats.co2Saved)}
+                {stats.co2Saved}
               </div>
             </div>
           </div>
@@ -100,7 +115,7 @@ const ViewImpact = () => {
             <div>
               <div className="text-sm text-emerald-600">Community Connections</div>
               <div className="text-2xl font-semibold text-emerald-800">
-                {formatNumber(stats.communityConnections)}
+                {stats.communityConnections}
               </div>
             </div>
           </div>
