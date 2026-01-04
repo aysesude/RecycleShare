@@ -519,14 +519,11 @@ const getImpactStats = async (req, res) => {
 
     // Response format required by frontend
     return res.json({
-      success: true,
-      data: {
-        itemsShared,
-        co2Saved,
-        communityConnections,
-        monthlyImpact
-      }
-    });
+  itemsShared,
+  co2Saved,
+  communityConnections,
+  monthlyImpact
+});
   } catch (error) {
     console.error('getImpactStats error:', error);
     // Avoid leaking internal SQL error details to the client; return safe message
