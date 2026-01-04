@@ -137,7 +137,7 @@ const Dashboard = () => {
               </h2>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button className="flex items-center gap-4 p-4 bg-eco-50 rounded-xl hover:bg-eco-100 transition-colors group">
+                <button onClick={() => navigate('/listings')} className="flex items-center gap-4 p-4 bg-eco-50 rounded-xl hover:bg-eco-100 transition-colors group">
                   <div className="w-12 h-12 bg-eco-gradient rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                     ♻️
                   </div>

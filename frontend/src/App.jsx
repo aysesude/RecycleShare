@@ -7,6 +7,7 @@ import Register from './pages/Register'
 import VerifyOTP from './pages/VerifyOTP'
 import GooglePhoneSetup from './pages/GooglePhoneSetup'
 import Dashboard from './pages/Dashboard'
+import Listings from './pages/Listings'
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -78,6 +79,14 @@ function App() {
               <Dashboard />
             </ProtectedRoute>
           } 
+        />
+        <Route 
+          path="/listings"
+          element={
+            <ProtectedRoute>
+              <Listings />
+            </ProtectedRoute>
+          }
         />
 
         {/* Default Route */}
