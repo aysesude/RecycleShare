@@ -11,8 +11,8 @@ const { query } = require('../config/database');
  */
 const getAllWaste = async (req, res) => {
   try {
-    const { city, type_id, status } = req.query;
-    
+    const { city, district, neighborhood, street, type_id, status } = req.query;
+
     // VIEW kullanarak sorgula (Ödev gereksinimi)
     let sql = `SELECT * FROM v_active_waste_details WHERE 1=1`;
     const params = [];
@@ -21,6 +21,24 @@ const getAllWaste = async (req, res) => {
     if (city) {
       sql += ` AND city = $${paramIndex}`;
       params.push(city);
+      paramIndex++;
+    }
+
+    if (district) {
+      sql += ` AND district = $${paramIndex}`;
+      params.push(district);
+      paramIndex++;
+    }
+
+    if (neighborhood) {
+      sql += ` AND neighborhood = $${paramIndex}`;
+      params.push(neighborhood);
+      paramIndex++;
+    }
+
+    if (street) {
+      sql += ` AND street = $${paramIndex}`;
+      params.push(street);
       paramIndex++;
     }
 

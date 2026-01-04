@@ -8,6 +8,7 @@ import VerifyOTP from './pages/VerifyOTP'
 import GooglePhoneSetup from './pages/GooglePhoneSetup'
 import Dashboard from './pages/Dashboard'
 import Listings from './pages/Listings'
+import BrowseListings from './pages/BrowseListings'
 import ViewImpact from './pages/Impact';
 
 // Protected Route Component
@@ -86,6 +87,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Listings />
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/browse"
+          element={
+            <ProtectedRoute>
+              <BrowseListings />
             </ProtectedRoute>
           }
         />
