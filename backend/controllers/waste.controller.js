@@ -373,13 +373,22 @@ const deleteWaste = async (req, res) => {
       });
     }
 
-    // DELETE işlemi (CASCADE ile rezervasyonlar da silinir)
-    await query('DELETE FROM waste WHERE waste_id = $1', [id]);
+    // Attempt deletion inside a transaction: first remove reservations, then delete waste
+    try {
+      await query('BEGIN');
+      await query('DELETE FROM reservations WHERE waste_id = $1', [id]);
+      await query('DELETE FROM waste WHERE waste_id = $1', [id]);
+      await query('COMMIT');
 
-    res.json({
-      success: true,
-      message: 'Atık ve ilgili rezervasyonlar başarıyla silindi'
-    });
+      res.json({
+        success: true,
+        message: 'Atık ve ilgili rezervasyonlar başarıyla silindi'
+      });
+    } catch (txErr) {
+      await query('ROLLBACK');
+      console.error('deleteWaste transaction error:', txErr);
+      return res.status(500).json({ success: false, message: 'Atık silinirken hata oluştu', error: txErr.message });
+    }
 
   } catch (error) {
     console.error('deleteWaste error:', error);
