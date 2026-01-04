@@ -161,7 +161,7 @@ const Dashboard = () => {
                   <div className="w-12 h-12 bg-eco-gradient rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                     📊
                   </div>
-                  <div className="text-left">
+                  <div onClick={() => navigate('/impact')} className="text-left cursor-pointer">
                     <h3 className="font-semibold text-gray-800">View Impact</h3>
                     <p className="text-sm text-gray-500">See your eco stats</p>
                   </div>
