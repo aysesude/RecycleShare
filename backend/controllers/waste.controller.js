@@ -452,7 +452,24 @@ const getWasteTypes = async (req, res) => {
     });
   }
 };
+const getImpactStats = async (req, res) => {
+  try {
+    const userId = req.user.id; 
+    const result = await query('SELECT COUNT(*) as total FROM wastes WHERE user_id = $1', [userId]);
+    const totalItems = parseInt(result.rows[0].total) || 0;
 
+    res.json({
+      success: true,
+      data: {
+        itemsShared: totalItems,
+        co2Saved: (totalItems * 0.5).toFixed(1),
+        connections: 0 
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
 module.exports = {
   getAllWaste,
   searchWasteByCity,
@@ -461,5 +478,6 @@ module.exports = {
   updateWaste,
   deleteWaste,
   getMyWaste,
-  getWasteTypes
+  getWasteTypes,
+  getImpactStats
 };

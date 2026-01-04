@@ -18,5 +18,5 @@ router.get('/:id', authenticateToken, wasteController.getWasteById);
 router.post('/', authenticateToken, wasteController.createWaste);
 router.put('/:id', authenticateToken, wasteController.updateWaste);
 router.delete('/:id', authenticateToken, wasteController.deleteWaste);
-
+router.get('/stats', authenticateToken, wasteController.getImpactStats);
 module.exports = router;
