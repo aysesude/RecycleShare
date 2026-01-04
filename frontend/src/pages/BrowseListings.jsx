@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
+import { FiArrowLeft } from 'react-icons/fi'
 
 const BrowseListings = () => {
   const { user } = useAuth()
+  const navigate = useNavigate()
+  const [pageError, setPageError] = useState(null)
 
   const [wasteTypes, setWasteTypes] = useState([])
   const [filters, setFilters] = useState({ city: '', district: '', neighborhood: '', street: '', type_id: '' })
@@ -16,9 +20,19 @@ const BrowseListings = () => {
   const [reservations, setReservations] = useState([])
 
   useEffect(() => {
-    fetchWasteTypes()
-    fetchListings()
-    fetchMyReservations()
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          fetchWasteTypes(),
+          fetchListings(),
+          fetchMyReservations()
+        ])
+      } catch (error) {
+        console.error('Error loading page data:', error)
+        setPageError('Failed to load page. Please check your connection and try again.')
+      }
+    }
+    loadData()
   }, [])
 
   const fetchWasteTypes = async () => {
@@ -28,7 +42,9 @@ const BrowseListings = () => {
       setWasteTypes(res.data?.data || res.data || [])
     } catch (err) {
       console.error('Error fetching waste types:', err)
+      toast.error('Failed to load waste types')
       setWasteTypes([])
+      throw err
     }
   }
 
@@ -101,10 +117,34 @@ const BrowseListings = () => {
     }
   }
 
+  if (pageError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-eco-50 via-white to-emerald-50 flex items-center justify-center">
+        <div className="eco-card p-8 max-w-md text-center">
+          <h2 className="text-lg font-semibold text-red-600 mb-2">Error Loading Page</h2>
+          <p className="text-gray-600 mb-4">{pageError}</p>
+          <button onClick={() => navigate('/dashboard')} className="btn btn-primary">
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-eco-50 via-white to-emerald-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <h1 className="text-2xl font-bold mb-4">Browse Listings & Reserve Pickup</h1>
+        <div className="flex items-center gap-3 mb-4">
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="btn btn-ghost btn-sm gap-2"
+          >
+            <FiArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+          <h1 className="text-2xl font-bold">Browse Listings & Reserve Pickup</h1>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Filters + Listings matrix (main) */}
           <div className="lg:col-span-2 space-y-4">
