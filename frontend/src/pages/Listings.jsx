@@ -13,8 +13,6 @@ const Listings = () => {
     description: '',
     weight: '',
     type_id: '',
-    latitude: '',
-    longitude: ''
   })
 
   const [addressFields, setAddressFields] = useState({
@@ -66,6 +64,9 @@ const Listings = () => {
     setAddressFields({ ...addressFields, [e.target.name]: e.target.value })
   }
 
+  const selectedType = wasteTypes.find((wt) => String(wt.type_id) === String(form.type_id))
+  const weightUnit = selectedType?.official_unit || 'kg'
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
@@ -74,8 +75,6 @@ const Listings = () => {
         description: form.description,
         amount: parseFloat(form.weight) || 0,
         type_id: parseInt(form.type_id),
-        latitude: form.latitude || null,
-        longitude: form.longitude || null
       }
 
       // include composed address from user address fields if present
@@ -136,10 +135,10 @@ const Listings = () => {
             <FiArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-2xl font-bold">Start Recycling — Create & Browse Listings</h1>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left: Create Listing Form */}
+                <div>
+                  <label className="label"><span className="label-text">Weight ({weightUnit})</span></label>
+                  <input name="weight" value={form.weight} onChange={handleChange} type="number" step={weightUnit === 'adet' ? '1' : '0.1'} placeholder={`Enter amount (${weightUnit})`} className="input input-bordered w-full" required />
+                </div>
           <div className="eco-card p-6">
             <h2 className="text-lg font-semibold mb-4">Add New Waste Item</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -152,7 +151,7 @@ const Listings = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="label"><span className="label-text">Weight (kg)</span></label>
+                  <label className="label"><span className="label-text">Weight </span></label>
                   <input name="weight" value={form.weight} onChange={handleChange} type="number" step="0.1" className="input input-bordered w-full" required />
                 </div>
                 <div>
@@ -166,10 +165,6 @@ const Listings = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <input name="latitude" value={form.latitude} onChange={handleChange} placeholder="Latitude (optional)" type="number" step="0.0001" className="input input-bordered w-full" />
-                <input name="longitude" value={form.longitude} onChange={handleChange} placeholder="Longitude (optional)" type="number" step="0.0001" className="input input-bordered w-full" />
-              </div>
 
               <div className="flex items-center gap-3">
                 <button type="submit" disabled={loading} className="btn btn-primary">
@@ -264,7 +259,7 @@ const Listings = () => {
                               <h3 className="font-semibold">{l.waste_type_name || l.type}</h3>
                               <p className="text-sm text-gray-600">{l.description}</p>
                               <div className="text-xs text-gray-500 mt-2 space-y-1">
-                                <div>Amount: {l.amount || l.weight} kg</div>
+                                <div>Amount: {l.amount || l.weight} {l.official_unit || 'kg'}</div>
                                 <div>Status: <span className="badge badge-sm badge-success">{l.status || 'waiting'}</span></div>
                                 {l.record_date && <div>Added: {new Date(l.record_date).toLocaleDateString()}</div>}
                               </div>
