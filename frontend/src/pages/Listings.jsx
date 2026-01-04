@@ -17,7 +17,13 @@ const Listings = () => {
     longitude: ''
   })
 
-  const [userAddress, setUserAddress] = useState('')
+  const [addressFields, setAddressFields] = useState({
+    city: '',
+    district: '',
+    neighborhood: '',
+    street: '',
+    address_details: ''
+  })
   const [editingAddress, setEditingAddress] = useState(false)
 
   const [wasteTypes, setWasteTypes] = useState([])
@@ -36,9 +42,15 @@ const Listings = () => {
       }
     }
     
-    // Set user address from logged-in user
-    if (user?.address) {
-      setUserAddress(user.address)
+    // Set user address fields from logged-in user
+    if (user) {
+      setAddressFields({
+        city: user.city || '',
+        district: user.district || '',
+        neighborhood: user.neighborhood || '',
+        street: user.street || '',
+        address_details: user.address_details || ''
+      })
     }
     
     fetchWasteTypes()
@@ -46,6 +58,10 @@ const Listings = () => {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleAddressChange = (e) => {
+    setAddressFields({ ...addressFields, [e.target.name]: e.target.value })
   }
 
   const handleSubmit = async (e) => {
@@ -59,6 +75,10 @@ const Listings = () => {
         latitude: form.latitude || null,
         longitude: form.longitude || null
       }
+
+      // include composed address from user address fields if present
+      const composedAddress = [addressFields.street, addressFields.neighborhood, addressFields.district, addressFields.city].filter(Boolean).join(', ')
+      if (composedAddress) payload.address = composedAddress
 
       const res = await api.post('/waste', payload)
       toast.success(res?.data?.message || 'Waste item created')
@@ -135,7 +155,7 @@ const Listings = () => {
             </form>
 
             <div className="mt-4 text-sm text-gray-500">
-              Location: <strong>{userAddress || 'Not set'}</strong>
+              Location: <strong>{[addressFields.street, addressFields.neighborhood, addressFields.district, addressFields.city].filter(Boolean).join(', ') || 'Not set'}</strong>
             </div>
           </div>
 
@@ -143,27 +163,46 @@ const Listings = () => {
           <div className="space-y-6">
             {/* Address Section */}
             <div className="eco-card p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Your Address</h2>
-                <button onClick={() => setEditingAddress(!editingAddress)} className="btn btn-ghost btn-sm">
-                  {editingAddress ? 'Cancel' : 'Edit'}
-                </button>
-              </div>
-
-              {editingAddress ? (
-                <div className="space-y-3">
-                  <input 
-                    type="text" 
-                    value={userAddress} 
-                    onChange={(e) => setUserAddress(e.target.value)} 
-                    placeholder="Enter your address" 
-                    className="input input-bordered w-full" 
-                  />
-                  <button onClick={() => { setEditingAddress(false); toast.success('Address saved') }} className="btn btn-sm btn-primary">Save Address</button>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold">Your Address</h2>
+                  <button onClick={() => setEditingAddress(!editingAddress)} className="btn btn-ghost btn-sm">
+                    {editingAddress ? 'Cancel' : 'Edit'}
+                  </button>
                 </div>
-              ) : (
-                <p className="text-gray-700">{userAddress || 'No address set. Edit to add your location.'}</p>
-              )}
+
+                {editingAddress ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <input name="city" value={addressFields.city} onChange={handleAddressChange} placeholder="City" className="input input-bordered w-full" />
+                      <input name="district" value={addressFields.district} onChange={handleAddressChange} placeholder="District" className="input input-bordered w-full" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input name="neighborhood" value={addressFields.neighborhood} onChange={handleAddressChange} placeholder="Neighborhood" className="input input-bordered w-full" />
+                      <input name="street" value={addressFields.street} onChange={handleAddressChange} placeholder="Street" className="input input-bordered w-full" />
+                    </div>
+                    <div>
+                      <input name="address_details" value={addressFields.address_details} onChange={handleAddressChange} placeholder="Address details (apt, floor, notes)" className="input input-bordered w-full" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => {
+                        setEditingAddress(false);
+                        // persist locally to keep UI consistent
+                        try {
+                          const stored = JSON.parse(localStorage.getItem('user') || '{}')
+                          const updated = { ...stored, city: addressFields.city, district: addressFields.district, neighborhood: addressFields.neighborhood, street: addressFields.street, address_details: addressFields.address_details }
+                          localStorage.setItem('user', JSON.stringify(updated))
+                        } catch (e) {}
+                        toast.success('Address saved')
+                      }} className="btn btn-sm btn-primary">Save Address</button>
+                      <button onClick={() => { setEditingAddress(false); setAddressFields({ city: user?.city||'', district: user?.district||'', neighborhood: user?.neighborhood||'', street: user?.street||'', address_details: user?.address_details||'' }) }} className="btn btn-sm btn-ghost">Reset</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-gray-700">{[addressFields.street, addressFields.neighborhood, addressFields.district, addressFields.city].filter(Boolean).join(', ') || 'No address set.'}</p>
+                    {addressFields.address_details && <p className="text-sm text-gray-500 mt-2">{addressFields.address_details}</p>}
+                  </div>
+                )}
             </div>
 
             {/* Listings Section */}
