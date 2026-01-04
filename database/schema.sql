@@ -109,6 +109,13 @@ CREATE TABLE IF NOT EXISTS trigger_logs (
 );
 
 -- ============================================
+-- FIX CASCADE CONSTRAINT (Ensure reservations delete when waste is deleted)
+-- ============================================
+ALTER TABLE IF EXISTS reservations DROP CONSTRAINT IF EXISTS reservations_waste_id_fkey;
+ALTER TABLE IF EXISTS reservations ADD CONSTRAINT reservations_waste_id_fkey 
+  FOREIGN KEY (waste_id) REFERENCES waste(waste_id) ON DELETE CASCADE;
+
+-- ============================================
 -- 2. SEQUENCE (Ödev Gereksinimi)
 -- ============================================
 -- Rezervasyon numarası için özel sequence
