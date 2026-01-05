@@ -102,14 +102,63 @@ const BrowseListings = () => {
       const payload = { waste_id: item.waste_id || item.id || item.wasteId, pickup_datetime: new Date(datetime).toISOString() }
       const res = await api.post('/reservations', payload)
       toast.success(res.data?.message || 'Reserved')
+
+      // remove listing from available list (existing behavior)
       setListings((prev) => prev.filter((l) => (l.waste_id || l.id) !== (item.waste_id || item.id)))
+
+      // if backend returned reservation object, prepend it so status shows as reserved immediately
+      const created = res.data?.data || res.data
+      if (created && (created.reservation_id || created.id)) {
+        setReservations((prev) => [created, ...prev])
+      } else {
+        // fallback: refresh reservations
+        fetchMyReservations()
+      }
+
       setReserveModal({ open: false, item: null, datetime: '' })
-      fetchMyReservations()
+      // ensure listings reflect backend state
+      fetchListings()
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Reservation failed')
     } finally {
       setLoading(false)
     }
+  }
+
+  // new: delete reservation handler
+  const handleDeleteReservation = async (r) => {
+    const id = r.reservation_id || r.id
+    if (!id) return toast.error('Invalid reservation')
+    if (!window.confirm('Delete this reservation? This will release the waste back to waiting.')) return
+    try {
+      setLoading(true)
+      await api.delete(`/reservations/${id}`)
+      toast.success('Reservation deleted')
+
+      // remove from local reservations list
+      setReservations((prev) => prev.filter((x) => (x.reservation_id || x.id) !== id))
+
+      // refresh listings so the waste shows as waiting again
+      fetchListings()
+      // refresh reservations to get authoritative state
+      fetchMyReservations()
+    } catch (err) {
+      console.error('Error deleting reservation:', err)
+      toast.error(err.response?.data?.message || err.message || 'Failed to delete reservation')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getStatusLabel = (s) => {
+    if (!s) return '-'
+    const map = {
+      waiting: 'Waiting',
+      reserved: 'Reserved',
+      completed: 'Completed',
+      cancelled: 'Cancelled'
+    }
+    return map[s] || String(s).charAt(0).toUpperCase() + String(s).slice(1)
   }
 
   if (pageError) {
@@ -269,19 +318,25 @@ const BrowseListings = () => {
                   <div className="text-sm text-gray-500 p-4 text-center bg-gray-50 rounded">No reservations yet.</div>
                 ) : reservations.map((r) => (
                   <div key={r.reservation_id || r.id} className="p-3 border rounded-lg bg-white">
-                    <div className="text-sm font-semibold">{r.type_name || r.type}</div>
-                    <div className="text-xs text-gray-600">{r.waste_description || r.description}</div>
-                    <div className="text-xs text-gray-500 mt-2">
-                      Pickup: {r.pickup_datetime ? new Date(r.pickup_datetime).toLocaleString() : '-'}
-                    </div>
-                    <div className="text-xs text-gray-700 mt-2">
-                      Address: {[r.city, r.district, r.neighborhood, r.street, r.address_details].filter(Boolean).join(', ')}
-                    </div>
-                    <div className="text-xs text-gray-700">
-                      Phone: {r.owner_phone}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Status: <span className="badge badge-sm">{r.status}</span>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="text-sm font-semibold">{r.type_name || r.type}</div>
+                        <div className="text-xs text-gray-600">{r.waste_description || r.description}</div>
+                        <div className="text-xs text-gray-500 mt-2">Pickup: {r.pickup_datetime ? new Date(r.pickup_datetime).toLocaleString() : '-'}</div>
+                        <div className="text-xs text-gray-700 mt-2">Address: {[r.city, r.district, r.neighborhood, r.street, r.address_details].filter(Boolean).join(', ') || '-'}</div>
+                        <div className="text-xs text-gray-700">Phone: {r.owner_phone || '-'}</div>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="text-xs text-gray-500">Status: <span className="badge badge-sm">{getStatusLabel(r.status)}</span></div>
+                        <button
+                          onClick={() => handleDeleteReservation(r)}
+                          className="btn btn-error btn-xs"
+                          title="Delete reservation"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
