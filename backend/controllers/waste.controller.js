@@ -16,7 +16,8 @@ const getAllWaste = async (req, res) => {
     // Eğer type_id ile filtreleme geliyorsa VIEW'da type_id olmadığı için
     // doğrudan tabloları join ederek sorguluyoruz. Aksi halde VIEW kullan.
     let sql;
-    if (type_id) {
+    const usingTable = !!type_id;
+    if (usingTable) {
       sql = `
         SELECT 
           w.waste_id,
@@ -39,54 +40,59 @@ const getAllWaste = async (req, res) => {
         JOIN users u ON w.user_id = u.user_id
         WHERE w.status IN ('waiting', 'reserved')`;
     } else {
-      // VIEW kullanarak sorgula (Ödev gereksinimi)
+      // VIEW kullanarak sorgula 
       sql = `SELECT * FROM v_active_waste_details WHERE 1=1`;
     }
     const params = [];
     let paramIndex = 1;
 
     if (city) {
-      sql += ` AND city = $${paramIndex}`;
+      sql += usingTable ? ` AND u.city = $${paramIndex}` : ` AND city = $${paramIndex}`;
       params.push(city);
       paramIndex++;
     }
 
     if (district) {
-      sql += ` AND district = $${paramIndex}`;
+      sql += usingTable ? ` AND u.district = $${paramIndex}` : ` AND district = $${paramIndex}`;
       params.push(district);
       paramIndex++;
     }
 
     if (neighborhood) {
-      sql += ` AND neighborhood = $${paramIndex}`;
+      sql += usingTable ? ` AND u.neighborhood = $${paramIndex}` : ` AND neighborhood = $${paramIndex}`;
       params.push(neighborhood);
       paramIndex++;
     }
 
     if (street) {
-      sql += ` AND street = $${paramIndex}`;
+      sql += usingTable ? ` AND u.street = $${paramIndex}` : ` AND street = $${paramIndex}`;
       params.push(street);
       paramIndex++;
     }
 
     if (type_id) {
       // Eğer type_id ile tablo sorgusunu kullanıyorsak wt.type_id üzerinden filtrele
-      sql += ` AND wt.type_id = $${paramIndex}`;
+      sql += usingTable ? ` AND wt.type_id = $${paramIndex}` : ` AND type_id = $${paramIndex}`;
       params.push(type_id);
       paramIndex++;
     }
 
     if (status) {
-      sql += ` AND status = $${paramIndex}`;
+      sql += usingTable ? ` AND w.status = $${paramIndex}` : ` AND status = $${paramIndex}`;
       params.push(status);
       paramIndex++;
     }
 
     // Eğer kullanıcı girişliyse kendi paylaştığı atıkları gösterme
     if (req.user && req.user.user_id) {
-      sql += ` AND user_id != $${paramIndex}`;
+      sql += usingTable ? ` AND w.user_id != $${paramIndex}` : ` AND user_id != $${paramIndex}`;
       params.push(req.user.user_id);
       paramIndex++;
+    }
+
+    // Ensure consistent ordering when using table query
+    if (usingTable) {
+      sql += ` ORDER BY w.record_date DESC`;
     }
 
     const result = await query(sql, params);
