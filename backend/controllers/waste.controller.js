@@ -13,8 +13,35 @@ const getAllWaste = async (req, res) => {
   try {
     const { city, district, neighborhood, street, type_id, status } = req.query;
 
-    // VIEW kullanarak sorgula (Ödev gereksinimi)
-    let sql = `SELECT * FROM v_active_waste_details WHERE 1=1`;
+    // Eğer type_id ile filtreleme geliyorsa VIEW'da type_id olmadığı için
+    // doğrudan tabloları join ederek sorguluyoruz. Aksi halde VIEW kullan.
+    let sql;
+    if (type_id) {
+      sql = `
+        SELECT 
+          w.waste_id,
+          w.amount,
+          w.description,
+          w.status,
+          w.record_date,
+          wt.type_id,
+          wt.type_name,
+          wt.official_unit,
+          wt.recycle_score,
+          u.user_id,
+          u.first_name || ' ' || u.last_name AS owner_name,
+          u.city,
+          u.district,
+          u.neighborhood,
+          u.phone AS owner_phone
+        FROM waste w
+        JOIN waste_types wt ON w.type_id = wt.type_id
+        JOIN users u ON w.user_id = u.user_id
+        WHERE w.status IN ('waiting', 'reserved')`;
+    } else {
+      // VIEW kullanarak sorgula (Ödev gereksinimi)
+      sql = `SELECT * FROM v_active_waste_details WHERE 1=1`;
+    }
     const params = [];
     let paramIndex = 1;
 
@@ -43,7 +70,8 @@ const getAllWaste = async (req, res) => {
     }
 
     if (type_id) {
-      sql += ` AND type_id = $${paramIndex}`;
+      // Eğer type_id ile tablo sorgusunu kullanıyorsak wt.type_id üzerinden filtrele
+      sql += ` AND wt.type_id = $${paramIndex}`;
       params.push(type_id);
       paramIndex++;
     }
@@ -51,6 +79,13 @@ const getAllWaste = async (req, res) => {
     if (status) {
       sql += ` AND status = $${paramIndex}`;
       params.push(status);
+      paramIndex++;
+    }
+
+    // Eğer kullanıcı girişliyse kendi paylaştığı atıkları gösterme
+    if (req.user && req.user.user_id) {
+      sql += ` AND user_id != $${paramIndex}`;
+      params.push(req.user.user_id);
       paramIndex++;
     }
 

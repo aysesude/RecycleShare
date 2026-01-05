@@ -167,33 +167,56 @@ const createReservation = async (req, res) => {
       });
     }
 
-    // SEQUENCE kullanarak rezervasyon numarası al (Ödev gereksinimi)
+    // SEQUENCE kullanarak rezervasyon numarası al
     const seqResult = await query("SELECT nextval('reservation_number_seq') as reservation_number");
     const reservationNumber = seqResult.rows[0].reservation_number;
 
-    // INSERT - TRIGGER otomatik çalışacak ve atık durumunu 'reserved' yapacak
+    // INSERT - trigger should update waste.status to 'reserved'.
     const result = await query(`
       INSERT INTO reservations (waste_id, collector_id, pickup_datetime, status)
       VALUES ($1, $2, $3, 'waiting')
       RETURNING *
     `, [waste_id, collector_id, pickup_datetime]);
 
-    // Trigger log'dan mesajı al
-    const triggerLog = await query(`
-      SELECT message FROM trigger_logs 
-      WHERE trigger_name = 'trg_reservation_status_change'
-      AND table_name = 'reservations'
-      ORDER BY created_at DESC LIMIT 1
-    `);
+    // Poll trigger_logs and waste status briefly to confirm trigger fired
+    let triggerMessage = null;
+    const maxRetries = 8;
+    const waitMs = 150;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      // Try to find a trigger log specific to this waste_id
+      const tLog = await query(`
+        SELECT message, new_data, old_data FROM trigger_logs
+        WHERE trigger_name = 'trg_reservation_status_change'
+          AND table_name = 'reservations'
+          AND (COALESCE((new_data->>'waste_id'), (old_data->>'waste_id')))::int = $1
+        ORDER BY created_at DESC LIMIT 1
+      `, [waste_id]);
 
-    const triggerMessage = triggerLog.rows.length > 0 ? triggerLog.rows[0].message : null;
+      // Check current waste status
+      const wasteRow = await query('SELECT status FROM waste WHERE waste_id = $1', [waste_id]);
+      const currentStatus = wasteRow.rows.length > 0 ? wasteRow.rows[0].status : null;
+
+      if (tLog.rows.length > 0) {
+        triggerMessage = tLog.rows[0].message || null;
+      }
+
+      if (currentStatus === 'reserved' || triggerMessage) {
+        break; // trigger likely ran
+      }
+
+      // wait a bit then retry
+      await new Promise(resolve => setTimeout(resolve, waitMs));
+    }
+
+    // Re-fetch the reservation to return the most up-to-date row
+    const freshRes = await query('SELECT * FROM reservations WHERE reservation_id = $1', [result.rows[0].reservation_id]);
 
     res.status(201).json({
       success: true,
       message: 'Rezervasyon başarıyla oluşturuldu',
       reservationNumber: reservationNumber,
-      triggerMessage: triggerMessage, // Trigger'ın çalıştığını göster
-      data: result.rows[0]
+      triggerMessage: triggerMessage,
+      data: freshRes.rows[0]
     });
 
   } catch (error) {
@@ -400,6 +423,9 @@ const getMyCollectorReservations = async (req, res) => {
         u.first_name || ' ' || u.last_name AS owner_name,
         u.city,
         u.district,
+        u.neighborhood,
+        u.street,
+        u.address_details,
         u.phone AS owner_phone
       FROM reservations r
       JOIN waste w ON r.waste_id = w.waste_id
