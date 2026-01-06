@@ -106,8 +106,8 @@ Atık teslim alındığında puan kazanma sistemi.
 | Phase | Durum | Tamamlanma |
 |-------|-------|------------|
 | Phase 1 - Auth | ✅ Tamamlandı | 100% |
-| Phase 2 - Listings | 🚧 Bekliyor | 0% |
-| Phase 3 - Explore | 🚧 Bekliyor | 0% |
+| Phase 2 - Listings | ✅ Tamamlandı | 100% |
+| Phase 3 - Explore | ✅ Tamamlandı | 100% |
 | Phase 4 - Gamification | 🚧 Bekliyor | 0% |
 | Phase 5 - Profile & Admin | 🚧 Bekliyor | 0% |
 
