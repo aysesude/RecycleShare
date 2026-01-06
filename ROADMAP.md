@@ -12,15 +12,14 @@ Bu dosya, projenin tamamlanması için gereken adımları ve yapılacaklar liste
 
 ---
 
-## 🚧 Phase 2: İlan (Listing) Modülü
+## ✅ Phase 2: İlan (Listing) Modülü (TAMAMLANDI)
 Kullanıcılar atık ilanı oluşturabilir ve başkalarının ilanlarını alabilir.
 
 ### Backend
 - [ ] **POST /api/listings:** Yeni ilan oluşturma endpoint'i.
-  - Gerekli alanlar: `title`, `description`, `weight`, `type` (plastik, kağıt, cam, metal, elektronik), `image_url`.
-  - Konum verisi: `latitude`, `longitude`, `address`.
-- [ ] **Image Upload:** Fotoğraflar için `Multer` veya Cloudinary entegrasyonu.
-- [ ] **GET /api/listings:** Tüm aktif ilanları listeleme (Filtreleme destekli).
+  - Gerekli alanlar: `title`, `description`, `weight`, `type` (plastik, kağıt, cam, metal, elektronik).
+
+
 - [ ] **GET /api/listings/my-listings:** Kullanıcının kendi ilanlarını listelemesi.
 - [ ] **GET /api/listings/:id:** Tek ilan detayı.
 - [ ] **PUT /api/listings/:id:** İlan güncelleme (sadece ilan sahibi).
@@ -28,42 +27,40 @@ Kullanıcılar atık ilanı oluşturabilir ve başkalarının ilanlarını alabi
 
 ### Frontend
 - [ ] **Create Listing Page:**
-  - Fotoğraf yükleme alanı (Drag & Drop).
   - Atık türü seçimi (Dropdown).
-  - Konum seçimi (Otomatik konum bulma veya haritadan seçme).
+  - Konum seçimi (logged in kullanicinin adres bilgisinden otomatik konum bulma ).
 - [ ] **My Listings Page:** Kullanıcının kendi ilanlarını yönettiği sayfa.
 
 ---
 
-## 🚧 Phase 3: Keşfet & Harita Modülü
+## ✅ Phase 3: Keşfet Modülü (TAMAMLANDI)
 Kullanıcıların ilanları keşfedip alacağı kısımdır.
 
 ### Backend
-- [ ] **GET /api/listings:** Filtreleme (Konuma göre, Türe göre, Tarihe göre).
+- [ ] **GET /api/listings:** Filtreleme (Konuma göre, Türe göre).
 - [ ] **PUT /api/listings/reserve/:id:** Bir ilanı rezerve etme (Status: `active` -> `reserved`).
 - [ ] **PUT /api/listings/cancel-reserve/:id:** Rezervasyonu iptal etme.
 
 ### Frontend
 - [ ] **Explore Page (Feed):** Tüm ilanların listelendiği ana sayfa (Grid yapısı).
-- [ ] **Map View:** İlanların harita üzerinde pin olarak gösterilmesi (Leaflet veya Google Maps).
-- [ ] **Filter & Search Bar:** Tür, konum, tarih filtreleri ve arama.
-- [ ] **Listing Detail Modal:** İlan detayları ve "Rezerve Et" / "Teslim Al" butonları.
+- [ ] **Filter:** Tür, konum filtreleri.
+- [ ] **Listing Detail Modal:** İlan detayları ve "Rezerve Et" butonu.
+- [ ] **Listing My Reservations** Kullanıcının yaptığı rezervasyonları görme ve iptal etme butonlarının olduğu yer
 
 ---
 
-## 🚧 Phase 4: Transfer & Puanlama (Gamification)
-Atık teslim alındığında puan kazanma sistemi.
+## 🚧 Phase 4: Transfer & Puanlama (Gamification) 
+Atık teslim alındığında puan kazanma sistemi. 
 
 ### Backend
 - [ ] **PUT /api/listings/complete/:id:** Transferin tamamlanması.
   - İlan durumu: `reserved` -> `completed`.
-  - **Puan Ekleme:** İlan sahibine +10 puan, Alan kişiye +5 puan.
+  - **Puan Ekleme:** İlan sahibine +recycle_score*amount puan, Alan kişiye bunun %70i puan.
 - [ ] **GET /api/users/leaderboard:** En çok puan kazanan kullanıcılar sıralaması.
 
 ### Frontend
-- [ ] **QR Code / Onay Sistemi:** (Opsiyonel) Teslimatta onay kodu.
-- [ ] **Success Animation:** "Tebrikler +10 Puan Kazandınız" animasyonu.
-- [ ] **Leaderboard Page:** Puan sıralaması tablosu.
+- [ ] **Success Animation:** "Tebrikler +X Puan Kazandınız" animasyonu.
+- [ ] **Leaderboard Page:** Puan sıralaması tablosu. Puan + İsim + Şehir 
 
 ---
 
