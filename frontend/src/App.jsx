@@ -106,6 +106,14 @@ function App() {
             </ProtectedRoute>
           } 
         />
+          <Route
+          path="/community"
+          element={
+            <ProtectedRoute>
+              <Community />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Default Route */}
         <Route path="/" element={<Navigate to="/login" replace />} />
