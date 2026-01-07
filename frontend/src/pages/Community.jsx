@@ -162,73 +162,87 @@ const Community = () => {
           <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
             {activeTab === 'collector' ? 'Collection Details' : 'Reservation Info'}
           </span>
-          <button onClick={() => setSelectedItem(null)} className="p-2 hover:bg-slate-100 rounded-full"><FiX size={20}/></button>
+          <button onClick={() => setSelectedItem(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+            <FiX size={20}/>
+          </button>
         </div>
 
-        {/* Atık Tipi ve Açıklama */}
-        <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight">
-          {selectedItem.waste_type_name || "General Waste"}
-        </h3>
+        {/* 1. WASTE NAME & WEIGHT BADGE */}
+        <div className="mb-6">
+          <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight leading-tight">
+            {selectedItem.waste_type_name || "General Waste"}
+          </h3>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-lg shadow-sm shadow-emerald-100">
+              {selectedItem.amount} {selectedItem.unit || 'KG'}
+            </span>
+            <span className="text-slate-400 text-xs font-medium uppercase tracking-widest">Total Weight</span>
+          </div>
+        </div>
+
         <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-          {selectedItem.description ? selectedItem.description : `${selectedItem.waste_type_name} ready for recycling.`}
+          {selectedItem.description || `This ${selectedItem.waste_type_name?.toLowerCase()} is ready for pickup and recycling.`}
         </p>
 
         <div className="space-y-3 mb-8">
           
-          {/* TO COLLECT SEKMESİ: ADRES GÖSTER */}
+          {/* 2. CONDITIONAL VIEW: ADDRESS (Collector) vs PICKUP TIME (Owner) */}
           {activeTab === 'collector' ? (
             <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
               <FiMapPin className="text-emerald-500 mt-1" />
               <div className="text-sm">
                 <p className="font-bold text-slate-700 uppercase text-[10px] tracking-widest">Pickup Address</p>
-                <p className="text-slate-500">{selectedItem.city}, {selectedItem.district}, {selectedItem.neighborhood}</p>
-                <p className="text-slate-400 text-xs italic">{selectedItem.street} St. No: {selectedItem.address_details}</p>
+                <p className="text-slate-600 font-medium">
+                  {selectedItem.city}, {selectedItem.district}, {selectedItem.neighborhood}
+                </p>
+                <p className="text-slate-400 text-xs italic">
+                  {selectedItem.street} St. No: {selectedItem.address_details}
+                </p>
               </div>
             </div>
           ) : (
-            /* MY ITEMS SEKMESİ: PICKUP DATE & TIME GÖSTER */
-            <div className="flex items-start gap-3 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
-              <div className="mt-1 text-emerald-600">
+            <div className="flex items-start gap-3 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+              <div className="mt-1 text-blue-600">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="Ref-8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
               <div className="text-sm">
-                <p className="font-bold text-emerald-700 uppercase text-[10px] tracking-widest">Scheduled Pickup</p>
+                <p className="font-bold text-blue-700 uppercase text-[10px] tracking-widest">Scheduled Pickup</p>
                 <p className="text-slate-700 font-bold text-lg">
                   {selectedItem.pickup_datetime 
                     ? new Date(selectedItem.pickup_datetime).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
-                    : 'Date not set'}
+                    : 'Date Pending'}
                 </p>
-                <p className="text-emerald-600 font-medium">
-                  At: {selectedItem.pickup_datetime 
+                <p className="text-blue-600 font-medium">
+                  Expected at: {selectedItem.pickup_datetime 
                     ? new Date(selectedItem.pickup_datetime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-                    : 'Time not set'}
+                    : 'Time Pending'}
                 </p>
               </div>
             </div>
           )}
 
-          {/* Kişi Bilgisi */}
+          {/* 3. USER INFO */}
           <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <FiUser className="text-blue-500 mt-1" />
+            <FiUser className="text-slate-400 mt-1" />
             <div className="text-sm">
               <p className="font-bold text-slate-700 uppercase text-[10px] tracking-widest">
-                {activeTab === 'collector' ? 'Owner' : 'Collector'}
+                {activeTab === 'collector' ? 'Posted By' : 'Reserved By'}
               </p>
-              <p className="text-slate-500">
+              <p className="text-slate-600 font-medium">
                 {activeTab === 'collector' ? selectedItem.owner_name : (selectedItem.collector_name || 'Anonymous User')}
               </p>
             </div>
           </div>
 
-          {/* Miktar Girişi (Sadece Toplayıcı Sekmesinde) */}
+          {/* 4. AMOUNT ADJUSTMENT (Only for Collector) */}
           {activeTab === 'collector' && selectedItem.status !== 'collected' && (
             <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-              <p className="text-[10px] font-bold text-emerald-600 uppercase mb-2">Adjust Amount ({selectedItem.unit || 'KG'})</p>
+              <p className="text-[10px] font-bold text-emerald-600 uppercase mb-2">Final Measured Amount ({selectedItem.unit || 'KG'})</p>
               <input 
                 type="number" 
-                className="input input-bordered w-full bg-white font-bold"
+                className="input input-bordered w-full bg-white font-bold text-lg focus:ring-emerald-500"
                 value={editAmount}
                 onChange={(e) => setEditAmount(e.target.value)}
               />
@@ -236,18 +250,18 @@ const Community = () => {
           )}
         </div>
 
-        {/* Buton Alanı */}
+        {/* BUTTON ACTIONS */}
         {activeTab === 'collector' && selectedItem.status !== 'collected' ? (
           <button 
             onClick={handleCollectAction}
-            className="btn btn-primary w-full h-14 bg-emerald-600 border-none hover:bg-emerald-700 text-white rounded-2xl font-bold shadow-lg"
+            className="btn btn-primary w-full h-14 bg-emerald-600 border-none hover:bg-emerald-700 text-white rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all"
           >
-            Confirm Collection
+            <FiCheckCircle className="mr-2" /> Mark as Collected
           </button>
         ) : (
           <button 
             onClick={() => setSelectedItem(null)}
-            className="btn btn-ghost w-full h-14 text-slate-400 font-bold border border-slate-100 rounded-2xl hover:bg-slate-50"
+            className="btn btn-ghost w-full h-14 text-slate-400 font-bold border border-slate-100 rounded-2xl"
           >
             Close Details
           </button>
