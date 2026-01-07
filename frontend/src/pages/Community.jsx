@@ -88,14 +88,14 @@ const Community = () => {
           <button onClick={() => navigate('/dashboard')} className="btn btn-circle btn-ghost bg-white shadow-sm border border-slate-200 text-emerald-600">
             <FiArrowLeft size={20} />
           </button>
-          <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Topluluk Hub</h1>
+          <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Community Hub</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden min-h-[500px]">
             <div className="flex bg-slate-50/50 border-b p-2 gap-2">
-              <button onClick={() => setActiveTab('collector')} className={`flex-1 py-4 font-black text-xs uppercase rounded-xl transition-all ${activeTab === 'collector' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Toplayacaklarım</button>
-              <button onClick={() => setActiveTab('owner')} className={`flex-1 py-4 font-black text-xs uppercase rounded-xl transition-all ${activeTab === 'owner' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>İlanlarım</button>
+              <button onClick={() => setActiveTab('collector')} className={`flex-1 py-4 font-black text-xs uppercase rounded-xl transition-all ${activeTab === 'collector' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>To Collect</button>
+              <button onClick={() => setActiveTab('owner')} className={`flex-1 py-4 font-black text-xs uppercase rounded-xl transition-all ${activeTab === 'owner' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>My Items</button>
             </div>
 
             <div className="p-6">
@@ -152,7 +152,7 @@ const Community = () => {
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex gap-4">
                   <FiAlignLeft className="text-slate-400 mt-1" />
                   <div className="text-sm text-slate-600">
-                    <p className="font-black text-slate-400 uppercase text-[10px] tracking-widest mb-1">Açıklama</p>
+                    <p className="font-black text-slate-400 uppercase text-[10px] tracking-widest mb-1">Explanation</p>
                     <p className="font-medium italic">"{selectedItem.display_desc}"</p>
                   </div>
                 </div>
@@ -160,29 +160,33 @@ const Community = () => {
                 <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-4">
                   <FiClock className="text-blue-500 mt-1" />
                   <div className="text-sm">
-                    <p className="font-black text-blue-400 uppercase text-[10px] tracking-widest mb-1">Randevu Saati</p>
+                    <p className="font-black text-blue-400 uppercase text-[10px] tracking-widest mb-1">Pickup Time</p>
                     <p className="text-blue-700 font-bold">
                         {new Date(selectedItem.pickup_datetime).toLocaleDateString('tr-TR')} - {new Date(selectedItem.pickup_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </p>
                   </div>
                 </div>
-
+                
+                {/* ADRES KUTUSU - Sadece toplayıcıysan (Collector) görünür */}
+                {activeTab === 'collector' && (
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex gap-4">
-                  <FiMapPin className="text-emerald-500 mt-1" />
-                  <div className="text-sm">
-                    <p className="font-black text-slate-400 uppercase text-[10px] tracking-widest mb-1">Alım Adresi</p>
-                    <p className="text-slate-700 font-bold">{selectedItem.neighborhood}, {selectedItem.street}</p>
-                    <p className="text-slate-500 text-xs font-bold uppercase">{selectedItem.district} / {selectedItem.city}</p>
-                    <p className="text-slate-400 text-[11px] mt-1 italic">{selectedItem.address_details}</p>
-                  </div>
-                </div>
+                <FiMapPin className="text-emerald-500 mt-1" />
+              <div className="text-sm">
+                <p className="font-black text-slate-400 uppercase text-[10px] tracking-widest mb-1">Alım Adresi</p>
+                <p className="text-slate-700 font-bold">{selectedItem.neighborhood}, {selectedItem.street}</p>
+                <p className="text-slate-500 text-xs font-bold uppercase">{selectedItem.district} / {selectedItem.city}</p>
+              {selectedItem.address_details && (
+              <p className="text-slate-400 text-[11px] mt-1 italic">{selectedItem.address_details}</p>
+              )}
+          </div>
+        </div>
+      )}
 
                 <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100 flex gap-4">
                   <FiUser className="text-orange-500 mt-1" />
                   <div className="text-sm">
                     <p className="font-black text-orange-400 uppercase text-[10px] tracking-widest mb-1">{selectedItem.contact_label}</p>
                     <p className="text-orange-900 font-bold mb-1">{selectedItem.contact_name}</p>
-                    {/* Linki kaldırdık, sadece düz metin olarak telefon numarası */}
                     <p className="text-orange-700 font-black text-lg flex items-center gap-2">
                         <FiPhone size={16}/> {selectedItem.contact_phone}
                     </p>
@@ -193,13 +197,13 @@ const Community = () => {
               {activeTab === 'collector' && selectedItem.status !== 'collected' ? (
                 <div className="space-y-4">
                   <div className="bg-slate-100 p-4 rounded-2xl">
-                    <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block">Ölçülen Net Miktar</label>
+                    <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block">Total Weight</label>
                     <input type="number" className="w-full bg-transparent border-none text-xl font-black focus:ring-0 outline-none" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} />
                   </div>
-                  <button onClick={handleCollectAction} className="btn btn-primary w-full h-16 bg-emerald-600 border-none text-white rounded-2xl font-black text-lg shadow-lg shadow-emerald-200">İŞLEMİ TAMAMLA</button>
+                  <button onClick={handleCollectAction} className="btn btn-primary w-full h-16 bg-emerald-600 border-none text-white rounded-2xl font-black text-lg shadow-lg shadow-emerald-200">COLLECT</button>
                 </div>
               ) : (
-                <button onClick={() => setSelectedItem(null)} className="btn btn-ghost w-full h-14 text-slate-400 font-bold border border-slate-100 rounded-2xl">PENCEREYİ KAPAT</button>
+                <button onClick={() => setSelectedItem(null)} className="btn btn-ghost w-full h-14 text-slate-400 font-bold border border-slate-100 rounded-2xl">CLOSE</button>
               )}
             </div>
           </div>
