@@ -153,73 +153,109 @@ const Community = () => {
           </div>
         </div>
 
-        {/* SHARED DETAIL MODAL */}
-        {selectedItem && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl">
-              <div className="p-8">
-                <div className="flex justify-between items-center mb-6">
-                  <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
-                    {activeTab === 'collector' ? 'Collection Details' : 'Listing Status'}
-                  </span>
-                  <button onClick={() => setSelectedItem(null)} className="p-2 hover:bg-slate-100 rounded-full"><FiX size={20}/></button>
-                </div>
+{/* SHARED DETAIL MODAL */}
+{selectedItem && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in duration-200">
+      <div className="p-8">
+        <div className="flex justify-between items-center mb-6">
+          <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+            {activeTab === 'collector' ? 'Collection Details' : 'Reservation Info'}
+          </span>
+          <button onClick={() => setSelectedItem(null)} className="p-2 hover:bg-slate-100 rounded-full"><FiX size={20}/></button>
+        </div>
 
-                <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase">{selectedItem.waste_type_name}</h3>
-                <p className="text-slate-500 text-sm mb-6">{selectedItem.description || 'No description available.'}</p>
+        {/* Atık Tipi ve Açıklama */}
+        <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight">
+          {selectedItem.waste_type_name || "General Waste"}
+        </h3>
+        <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+          {selectedItem.description ? selectedItem.description : `${selectedItem.waste_type_name} ready for recycling.`}
+        </p>
 
-                <div className="space-y-3 mb-8">
-                  {/* Adres Bilgisi */}
-                  <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <FiMapPin className="text-emerald-500 mt-1" />
-                    <div className="text-sm">
-                      <p className="font-bold text-slate-700">Location</p>
-                      <p className="text-slate-500">{selectedItem.city}, {selectedItem.district}, {selectedItem.neighborhood}</p>
-                      <p className="text-slate-400 text-xs italic">{selectedItem.street} St. No: {selectedItem.address_details}</p>
-                    </div>
-                  </div>
-
-                  {/* Kişi Bilgisi (Kimden/Kime) */}
-                  <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <FiUser className="text-blue-500 mt-1" />
-                    <div className="text-sm">
-                      <p className="font-bold text-slate-700">{activeTab === 'collector' ? 'Owner' : 'Collector'}</p>
-                      <p className="text-slate-500">
-                        {activeTab === 'collector' ? selectedItem.owner_name : (selectedItem.collector_name || 'Waiting for collector...')}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Miktar Girişi (Sadece Toplayıcı Sekmesinde) */}
-                  {activeTab === 'collector' && selectedItem.status !== 'collected' && (
-                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                      <p className="text-[10px] font-bold text-emerald-600 uppercase mb-2">Adjust Amount ({selectedItem.unit || 'KG'})</p>
-                      <input 
-                        type="number" 
-                        className="input input-bordered w-full bg-white font-bold"
-                        value={editAmount}
-                        onChange={(e) => setEditAmount(e.target.value)}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {activeTab === 'collector' && selectedItem.status !== 'collected' ? (
-                  <button 
-                    onClick={handleCollectAction}
-                    className="btn btn-primary w-full h-14 bg-emerald-600 border-none hover:bg-emerald-700 text-white rounded-2xl font-bold shadow-lg"
-                  >
-                    Confirm Collection
-                  </button>
-                ) : (
-                  <div className="text-center p-2 text-xs text-slate-400 font-medium bg-slate-50 rounded-xl">
-                    {selectedItem.status === 'collected' ? 'This transaction is completed.' : 'You can view details only for your listings.'}
-                  </div>
-                )}
+        <div className="space-y-3 mb-8">
+          
+          {/* TO COLLECT SEKMESİ: ADRES GÖSTER */}
+          {activeTab === 'collector' ? (
+            <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <FiMapPin className="text-emerald-500 mt-1" />
+              <div className="text-sm">
+                <p className="font-bold text-slate-700 uppercase text-[10px] tracking-widest">Pickup Address</p>
+                <p className="text-slate-500">{selectedItem.city}, {selectedItem.district}, {selectedItem.neighborhood}</p>
+                <p className="text-slate-400 text-xs italic">{selectedItem.street} St. No: {selectedItem.address_details}</p>
               </div>
             </div>
+          ) : (
+            /* MY ITEMS SEKMESİ: PICKUP DATE & TIME GÖSTER */
+            <div className="flex items-start gap-3 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+              <div className="mt-1 text-emerald-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="Ref-8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="text-sm">
+                <p className="font-bold text-emerald-700 uppercase text-[10px] tracking-widest">Scheduled Pickup</p>
+                <p className="text-slate-700 font-bold text-lg">
+                  {selectedItem.pickup_datetime 
+                    ? new Date(selectedItem.pickup_datetime).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
+                    : 'Date not set'}
+                </p>
+                <p className="text-emerald-600 font-medium">
+                  At: {selectedItem.pickup_datetime 
+                    ? new Date(selectedItem.pickup_datetime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                    : 'Time not set'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Kişi Bilgisi */}
+          <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <FiUser className="text-blue-500 mt-1" />
+            <div className="text-sm">
+              <p className="font-bold text-slate-700 uppercase text-[10px] tracking-widest">
+                {activeTab === 'collector' ? 'Owner' : 'Collector'}
+              </p>
+              <p className="text-slate-500">
+                {activeTab === 'collector' ? selectedItem.owner_name : (selectedItem.collector_name || 'Anonymous User')}
+              </p>
+            </div>
           </div>
+
+          {/* Miktar Girişi (Sadece Toplayıcı Sekmesinde) */}
+          {activeTab === 'collector' && selectedItem.status !== 'collected' && (
+            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+              <p className="text-[10px] font-bold text-emerald-600 uppercase mb-2">Adjust Amount ({selectedItem.unit || 'KG'})</p>
+              <input 
+                type="number" 
+                className="input input-bordered w-full bg-white font-bold"
+                value={editAmount}
+                onChange={(e) => setEditAmount(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Buton Alanı */}
+        {activeTab === 'collector' && selectedItem.status !== 'collected' ? (
+          <button 
+            onClick={handleCollectAction}
+            className="btn btn-primary w-full h-14 bg-emerald-600 border-none hover:bg-emerald-700 text-white rounded-2xl font-bold shadow-lg"
+          >
+            Confirm Collection
+          </button>
+        ) : (
+          <button 
+            onClick={() => setSelectedItem(null)}
+            className="btn btn-ghost w-full h-14 text-slate-400 font-bold border border-slate-100 rounded-2xl hover:bg-slate-50"
+          >
+            Close Details
+          </button>
         )}
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </div>
   )
