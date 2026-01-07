@@ -23,51 +23,50 @@ const Community = () => {
   }, [])
 
   const fetchInitialData = async () => {
-    setLoading(true)
-    try {
-      // We fetch top contributors, reservations, and the full waste list.
-      // The /waste endpoint already includes joined data (type_name, city, neighborhood).
-      const [lbRes, collRes, ownRes, allWasteRes] = await Promise.all([
-        api.get('/reports/top-contributors'),
-        api.get('/reservations/my/collector'),
-        api.get('/reservations/my/owner'),
-        api.get('/waste') 
-      ])
+  setLoading(true)
+  try {
+    const [lbRes, collRes, ownRes, allWasteRes] = await Promise.all([
+      api.get('/reports/top-contributors'),
+      api.get('/reservations/my/collector'),
+      api.get('/reservations/my/owner'),
+      api.get('/waste') 
+    ])
+    
+    const allWaste = allWasteRes.data?.data || []
+    
+    const enhance = (resList) => resList.map(res => {
+      // Find the raw waste record to get location/type details
+      const wasteInfo = allWaste.find(w => String(w.waste_id) === String(res.waste_id)) || {}
       
-      const allWaste = allWasteRes.data?.data || []
-      
-      /**
-       * ENHANCE FUNCTION
-       * Maps the raw reservation data to the rich metadata found in the waste table.
-       */
-      const enhance = (resList) => resList.map(res => {
-        // We use String() to ensure comparison works regardless of data type (int vs string)
-        const wasteInfo = allWaste.find(w => String(w.waste_id) === String(res.waste_id)) || {}
+      return {
+        ...res,
+        // Use wasteInfo if available, fallback to res (for owner tab which has some fields joined)
+        display_name: wasteInfo.type_name || res.type_name || 'Recyclable Item',
+        display_desc: wasteInfo.description || res.waste_description || 'No description',
+        display_amount: wasteInfo.amount || res.amount || '0',
+        display_unit: wasteInfo.official_unit || res.official_unit || 'kg',
         
-        return {
-          ...res,
-          display_name: wasteInfo.type_name || 'Recyclable Item',
-          display_desc: wasteInfo.description || 'No description provided',
-          display_amount: wasteInfo.amount || '0',
-          display_unit: wasteInfo.official_unit || 'kg',
-          // Location data pulled from the joined user info in the waste object
-          city: wasteInfo.city || 'N/A',
-          district: wasteInfo.district || '',
-          neighborhood: wasteInfo.neighborhood || '',
-          owner_full_name: `${wasteInfo.first_name || ''} ${wasteInfo.last_name || ''}`.trim()
-        }
-      })
+        // Detailed Address from the waste record (joined from users table in backend)
+        city: wasteInfo.city || res.city || 'N/A',
+        district: wasteInfo.district || res.district || '',
+        neighborhood: wasteInfo.neighborhood || res.neighborhood || '',
+        street: wasteInfo.street || 'Street info not provided',
+        address_details: wasteInfo.address_details || 'No extra details',
+        
+        // Contact Phone Number (Owner's phone for collector, Collector's phone for owner)
+        phone: wasteInfo.owner_phone || res.collector_phone || 'N/A'
+      }
+    })
 
-      setLeaderboard(lbRes.data?.data || [])
-      setToCollect(enhance(collRes.data?.data || []))
-      setMyResv(enhance(ownRes.data?.data || []))
-    } catch (err) {
-      console.error("Fetch error:", err)
-      toast.error('Could not load community data')
-    } finally {
-      setLoading(false)
-    }
+    setLeaderboard(lbRes.data?.data || [])
+    setToCollect(enhance(collRes.data?.data || []))
+    setMyResv(enhance(ownRes.data?.data || []))
+  } catch (err) {
+    toast.error('Could not load community data')
+  } finally {
+    setLoading(false)
   }
+}
 
   const handleCollectAction = async () => {
     if (!editAmount || parseFloat(editAmount) <= 0) {
@@ -182,17 +181,27 @@ const Community = () => {
                   </div>
                 </div>
 
-                <div className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex gap-4">
-                  <FiMapPin className="text-emerald-500 mt-1" />
-                  <div className="text-sm">
-                    <p className="font-black text-slate-400 uppercase text-[10px] tracking-widest mb-1">Pickup Location</p>
-                    <p className="text-slate-700 font-bold">
-                        {selectedItem.neighborhood}, {selectedItem.district}
-                        <br />
-                        {selectedItem.city}
-                    </p>
-                  </div>
-                </div>
+                {/* Inside the Modal - replace the Location block with this */}
+<div className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex gap-4">
+  <FiMapPin className="text-emerald-500 mt-1" />
+  <div className="text-sm">
+    <p className="font-black text-slate-400 uppercase text-[10px] tracking-widest mb-1">Pickup Address</p>
+    <p className="text-slate-700 font-bold">
+      {selectedItem.neighborhood}, {selectedItem.street}
+    </p>
+    <p className="text-slate-500 text-xs italic">{selectedItem.address_details}</p>
+    <p className="text-slate-700 font-bold mt-1">{selectedItem.district} / {selectedItem.city}</p>
+  </div>
+</div>
+
+{/* Add a Contact Phone block */}
+<div className="p-5 bg-orange-50 rounded-[2rem] border border-orange-100 flex gap-4">
+  <FiUser className="text-orange-500 mt-1" />
+  <div className="text-sm">
+    <p className="font-black text-orange-400 uppercase text-[10px] tracking-widest mb-1">Contact Phone</p>
+    <p className="text-orange-700 font-black text-lg">{selectedItem.phone}</p>
+  </div>
+</div>
 
                 <div className="p-5 bg-blue-50 rounded-[2rem] border border-blue-100 flex gap-4">
                   <FiCalendar className="text-blue-500 mt-1" />
