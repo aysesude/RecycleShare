@@ -10,7 +10,7 @@ import Dashboard from './pages/Dashboard'
 import Listings from './pages/Listings'
 import BrowseListings from './pages/BrowseListings'
 import ViewImpact from './pages/Impact';
-
+import Community from './pages/Community'
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth()
