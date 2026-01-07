@@ -54,11 +54,13 @@ Atık teslim alındığında puan kazanma sistemi.
 
 ### Backend
 - [ ] **PUT /api/listings/complete/:id:** Transferin tamamlanması.
-  - İlan durumu: `reserved` -> `completed`.
-  - **Puan Ekleme:** İlan sahibine +recycle_score*amount puan, Alan kişiye bunun %70i puan.
+  - Atık durumu güncelleme: miktar durumu `before` -> `after`
+  - İlan durumu: `reserved` -> `collected`.
+  - **Puan Ekleme:** İlan sahibine + recycle_score*amount puan, Alan kişiye bunun %70i puan.
 - [ ] **GET /api/users/leaderboard:** En çok puan kazanan kullanıcılar sıralaması.
 
 ### Frontend
+- [ ] **Reservations Page:** "Atıklarıma Yapılan Rezervasyonlar, Yaptığım Rezervasyonlar" 
 - [ ] **Success Animation:** "Tebrikler +X Puan Kazandınız" animasyonu.
 - [ ] **Leaderboard Page:** Puan sıralaması tablosu. Puan + İsim + Şehir 
 
