@@ -2,180 +2,220 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import toast from 'react-hot-toast'
-import { useAuth } from '../context/AuthContext' // 1. Use Auth Hook
-import { FiArrowLeft, FiPackage, FiCheckCircle, FiTrash2, FiUsers, FiAward, FiExternalLink, FiX } from 'react-icons/fi'
+import { useAuth } from '../context/AuthContext'
+import { FiArrowLeft, FiPackage, FiMapPin, FiInfo, FiCheckCircle, FiTrash2, FiUsers, FiX, FiUser } from 'react-icons/fi'
 
 const Community = () => {
   const navigate = useNavigate()
-  const { user } = useAuth() // 2. Get user context
+  const { user } = useAuth()
 
   const [leaderboard, setLeaderboard] = useState([])
-  const [toCollect, setToCollect] = useState([])
-  const [beingCollected, setBeingCollected] = useState([])
+  const [toCollect, setToCollect] = useState([]) // Benim toplayacaklarım
+  const [myResv, setMyResv] = useState([])       // Benim ilanlarım (rezerve edilmiş)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('to_collect')
+  const [activeTab, setActiveTab] = useState('collector')
   
-  const [selectedWaste, setSelectedWaste] = useState(null)
-  const [finalAmount, setFinalAmount] = useState('')
+  const [selectedItem, setSelectedItem] = useState(null)
+  const [editAmount, setEditAmount] = useState('')
 
   useEffect(() => {
-    fetchCommunityData()
+    fetchData()
   }, [])
 
-  const fetchCommunityData = async () => {
+  const fetchData = async () => {
     setLoading(true)
     try {
-      // API endpoints based on your swagger.json
       const [lbRes, collRes, ownRes] = await Promise.all([
         api.get('/reports/top-contributors'),
         api.get('/reservations/my/collector'),
         api.get('/reservations/my/owner')
       ])
-
       setLeaderboard(lbRes.data?.data || [])
       setToCollect(collRes.data?.data || [])
-      setBeingCollected(ownRes.data?.data || [])
+      setMyResv(ownRes.data?.data || [])
     } catch (err) {
-      console.error("Sync Error:", err)
-      toast.error('Failed to sync community data')
+      toast.error('Sync Error: Connection failed')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleCollect = async () => {
-    if (!finalAmount || finalAmount <= 0) return toast.error('Please enter a valid amount')
+  const handleCollectAction = async () => {
+    if (!editAmount || editAmount <= 0) return toast.error('Please enter a valid amount')
     try {
-      const res = await api.put(`/reservations/${selectedWaste.reservation_id}`, {
+      await api.put(`/reservations/${selectedItem.reservation_id}`, {
         status: 'collected',
-        actual_amount: parseFloat(finalAmount)
+        actual_amount: parseFloat(editAmount)
       })
-      toast.success(res.data?.triggerMessage || 'Waste collected successfully!')
-      setSelectedWaste(null)
-      fetchCommunityData() 
+      toast.success('Successfully collected! Points added.')
+      setSelectedItem(null)
+      fetchData()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Update failed')
-    }
-  }
-
-  const cancelReservation = async (id) => {
-    if(!window.confirm("Cancel this reservation?")) return
-    try {
-      await api.delete(`/reservations/${id}`)
-      toast.success('Reservation cancelled')
-      fetchCommunityData()
-    } catch (err) {
-      toast.error('Action failed')
+      toast.error('Update failed')
     }
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 lg:p-8">
+    <div className="min-h-screen bg-[#F8FAFC] p-4 lg:p-8 text-slate-800">
       <div className="max-w-7xl mx-auto">
         
-        {/* HEADER & BACK BUTTON */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate('/dashboard')} 
-              className="btn btn-circle btn-ghost bg-white shadow-sm hover:bg-emerald-50 text-emerald-600 border border-slate-200"
-            >
-              <FiArrowLeft size={20} />
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-800">Community Hub</h1>
-              <p className="text-slate-500 text-sm">Welcome back, {user?.first_name || 'Hero'}!</p>
-            </div>
+        {/* HEADER */}
+        <div className="flex items-center gap-4 mb-8">
+          <button onClick={() => navigate('/dashboard')} className="btn btn-circle btn-ghost bg-white shadow-sm border border-slate-200 text-emerald-600">
+            <FiArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">Community Hub</h1>
+            <p className="text-slate-500 text-sm">Welcome, {user?.first_name}! Score: <span className="font-bold text-emerald-600">{user?.total_points || 0}</span></p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* LEFT: RESERVATIONS */}
-          <div className="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
-            <div className="flex bg-slate-50/50 border-b">
+          
+          {/* RESERVATIONS LIST */}
+          <div className="lg:col-span-8 bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden min-h-[500px]">
+            <div className="flex bg-slate-50 border-b border-slate-100 p-1">
               <button 
-                onClick={() => setActiveTab('to_collect')}
-                className={`flex-1 py-4 text-sm font-bold ${activeTab === 'to_collect' ? 'bg-white text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-400'}`}
+                onClick={() => setActiveTab('collector')}
+                className={`flex-1 py-3 font-bold text-sm rounded-2xl transition-all ${activeTab === 'collector' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
               >
-                Items to Collect
+                To Collect
               </button>
               <button 
-                onClick={() => setActiveTab('my_listings_reserved')}
-                className={`flex-1 py-4 text-sm font-bold ${activeTab === 'my_listings_reserved' ? 'bg-white text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-400'}`}
+                onClick={() => setActiveTab('owner')}
+                className={`flex-1 py-3 font-bold text-sm rounded-2xl transition-all ${activeTab === 'owner' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
               >
-                My Items
+                My Items (Reserved)
               </button>
             </div>
 
             <div className="p-6">
               {loading ? (
-                <div className="flex justify-center py-20"><span className="loading loading-spinner text-emerald-500"></span></div>
+                <div className="flex justify-center py-20"><span className="loading loading-spinner loading-lg text-emerald-500"></span></div>
               ) : (
-                <div className="space-y-4">
-                  {(activeTab === 'to_collect' ? toCollect : beingCollected).map((item) => (
-                    <div key={item.reservation_id} className="flex items-center justify-between p-4 border rounded-xl hover:shadow-sm transition-all">
-                      <div>
-                        <h4 className="font-bold text-slate-800">{item.waste_type_name}</h4>
-                        <div className="flex gap-2 mt-1">
-                          <span className="badge badge-sm badge-ghost uppercase">{item.status}</span>
-                          <span className="text-xs text-slate-400">{item.amount} {item.unit || 'kg'}</span>
+                <div className="grid gap-4">
+                  {(activeTab === 'collector' ? toCollect : myResv).map(item => (
+                    <div key={item.reservation_id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 border border-slate-50 rounded-2xl bg-slate-50/30 hover:bg-white hover:shadow-md transition-all group">
+                      <div className="flex gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
+                          {item.waste_type_name?.charAt(0) || 'W'}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-800 uppercase text-xs tracking-widest">{item.waste_type_name}</h4>
+                          <p className="text-sm text-slate-500 mt-0.5 line-clamp-1">{item.description || 'Eco-friendly waste'}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.status === 'collected' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+                              {item.status.toUpperCase()}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold">{item.amount} {item.unit || 'KG'}</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        {activeTab === 'to_collect' && item.status === 'reserved' && (
-                          <button 
-                            onClick={() => { setSelectedWaste(item); setFinalAmount(item.amount); }}
-                            className="btn btn-success btn-sm text-white"
-                          >
-                            Collect
-                          </button>
-                        )}
-                        <button onClick={() => cancelReservation(item.reservation_id)} className="btn btn-ghost btn-sm text-red-400">
-                          <FiTrash2 />
-                        </button>
-                      </div>
+                      
+                      <button 
+                        onClick={() => { setSelectedItem(item); setEditAmount(item.amount); }}
+                        className="btn btn-sm bg-white border-slate-200 text-slate-700 hover:bg-emerald-600 hover:text-white rounded-lg shadow-sm mt-4 sm:mt-0"
+                      >
+                        <FiInfo size={14} className="mr-1" /> See Details
+                      </button>
                     </div>
                   ))}
+                  {(activeTab === 'collector' ? toCollect : myResv).length === 0 && (
+                    <div className="text-center py-20 text-slate-400 italic">Nothing to show here yet.</div>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* RIGHT: LEADERBOARD */}
-          <div className="lg:col-span-4 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-fit">
-            <div className="bg-emerald-600 p-4 text-white font-bold flex items-center gap-2">
-              <FiUsers /> Top Contributors
-            </div>
-            <div className="p-2">
-              {leaderboard.map((u, index) => (
-                <div key={index} className={`flex items-center justify-between p-3 rounded-lg ${u.user_id === user?.user_id ? 'bg-emerald-50 border border-emerald-100' : ''}`}>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-slate-400">#{index+1}</span>
-                    <span className={`text-sm ${u.user_id === user?.user_id ? 'font-bold text-emerald-700' : 'font-medium'}`}>
-                      {u.first_name} {u.user_id === user?.user_id ? '(You)' : ''}
-                    </span>
-                  </div>
-                  <span className="text-emerald-600 font-bold text-sm">{u.total_waste_count} pts</span>
+          {/* LEADERBOARD */}
+          <div className="lg:col-span-4">
+             <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div className="bg-emerald-600 p-5 text-white font-bold flex items-center gap-2">
+                  <FiUsers /> Top Contributors
                 </div>
-              ))}
-            </div>
+                <div className="p-4 space-y-1">
+                  {leaderboard.map((u, index) => (
+                    <div key={index} className={`flex justify-between items-center p-3 rounded-xl ${u.user_id === user?.user_id ? 'bg-emerald-50 border border-emerald-100' : ''}`}>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${index < 3 ? 'bg-yellow-100 text-yellow-600' : 'text-slate-300'}`}>
+                          {index + 1}
+                        </span>
+                        <span className={`text-sm ${u.user_id === user?.user_id ? 'font-bold text-emerald-700' : 'text-slate-600'}`}>
+                          {u.first_name} {u.user_id === user?.user_id ? '(You)' : ''}
+                        </span>
+                      </div>
+                      <span className="text-xs font-black text-emerald-600">{u.total_waste_count} items</span>
+                    </div>
+                  ))}
+                </div>
+             </div>
           </div>
         </div>
 
-        {/* COLLECT MODAL */}
-        {selectedWaste && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-3xl w-full max-w-sm p-8 shadow-xl">
-              <h3 className="text-xl font-bold mb-4">Confirm Amount</h3>
-              <input 
-                type="number" 
-                className="input input-bordered w-full mb-6"
-                value={finalAmount}
-                onChange={(e) => setFinalAmount(e.target.value)}
-              />
-              <div className="flex flex-col gap-2">
-                <button onClick={handleCollect} className="btn btn-primary bg-emerald-600 border-none">Finish & Earn Pts</button>
-                <button onClick={() => setSelectedWaste(null)} className="btn btn-ghost">Cancel</button>
+        {/* SHARED DETAIL MODAL */}
+        {selectedItem && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl">
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                    {activeTab === 'collector' ? 'Collection Details' : 'Listing Status'}
+                  </span>
+                  <button onClick={() => setSelectedItem(null)} className="p-2 hover:bg-slate-100 rounded-full"><FiX size={20}/></button>
+                </div>
+
+                <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase">{selectedItem.waste_type_name}</h3>
+                <p className="text-slate-500 text-sm mb-6">{selectedItem.description || 'No description available.'}</p>
+
+                <div className="space-y-3 mb-8">
+                  {/* Adres Bilgisi */}
+                  <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <FiMapPin className="text-emerald-500 mt-1" />
+                    <div className="text-sm">
+                      <p className="font-bold text-slate-700">Location</p>
+                      <p className="text-slate-500">{selectedItem.city}, {selectedItem.district}, {selectedItem.neighborhood}</p>
+                      <p className="text-slate-400 text-xs italic">{selectedItem.street} St. No: {selectedItem.address_details}</p>
+                    </div>
+                  </div>
+
+                  {/* Kişi Bilgisi (Kimden/Kime) */}
+                  <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <FiUser className="text-blue-500 mt-1" />
+                    <div className="text-sm">
+                      <p className="font-bold text-slate-700">{activeTab === 'collector' ? 'Owner' : 'Collector'}</p>
+                      <p className="text-slate-500">
+                        {activeTab === 'collector' ? selectedItem.owner_name : (selectedItem.collector_name || 'Waiting for collector...')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Miktar Girişi (Sadece Toplayıcı Sekmesinde) */}
+                  {activeTab === 'collector' && selectedItem.status !== 'collected' && (
+                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                      <p className="text-[10px] font-bold text-emerald-600 uppercase mb-2">Adjust Amount ({selectedItem.unit || 'KG'})</p>
+                      <input 
+                        type="number" 
+                        className="input input-bordered w-full bg-white font-bold"
+                        value={editAmount}
+                        onChange={(e) => setEditAmount(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {activeTab === 'collector' && selectedItem.status !== 'collected' ? (
+                  <button 
+                    onClick={handleCollectAction}
+                    className="btn btn-primary w-full h-14 bg-emerald-600 border-none hover:bg-emerald-700 text-white rounded-2xl font-bold shadow-lg"
+                  >
+                    Confirm Collection
+                  </button>
+                ) : (
+                  <div className="text-center p-2 text-xs text-slate-400 font-medium bg-slate-50 rounded-xl">
+                    {selectedItem.status === 'collected' ? 'This transaction is completed.' : 'You can view details only for your listings.'}
+                  </div>
+                )}
               </div>
             </div>
           </div>
