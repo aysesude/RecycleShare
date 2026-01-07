@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
-import { FiArrowLeft, FiMapPin, FiBox, FiCheckCircle, FiUsers, FiX, FiUser, FiCalendar, FiClock, FiAlignLeft } from 'react-icons/fi'
+import { FiArrowLeft, FiMapPin, FiBox, FiUsers, FiX, FiCalendar, FiAlignLeft } from 'react-icons/fi'
 
 const Community = () => {
   const navigate = useNavigate()
@@ -12,7 +12,6 @@ const Community = () => {
   const [leaderboard, setLeaderboard] = useState([])
   const [toCollect, setToCollect] = useState([]) 
   const [myResv, setMyResv] = useState([])      
-  const [wasteTypes, setWasteTypes] = useState([]) // From waste_types table
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('collector')
   
@@ -26,36 +25,36 @@ const Community = () => {
   const fetchInitialData = async () => {
     setLoading(true)
     try {
-      // 1. Fetch Waste Types (Table: waste_types)
-      const resTypes = await api.get('/waste/types')
-      const typesList = resTypes.data?.data || resTypes.data || []
-      setWasteTypes(typesList)
-
-      // 2. Fetch all raw data
+      // We fetch top contributors, reservations, and the full waste list.
+      // The /waste endpoint already includes joined data (type_name, city, neighborhood).
       const [lbRes, collRes, ownRes, allWasteRes] = await Promise.all([
         api.get('/reports/top-contributors'),
         api.get('/reservations/my/collector'),
         api.get('/reservations/my/owner'),
-        api.get('/waste') // Fetching waste table to get descriptions
+        api.get('/waste') 
       ])
       
-      const allWaste = allWasteRes.data?.data || allWasteRes.data || []
+      const allWaste = allWasteRes.data?.data || []
       
-      // 3. ENHANCE RESERVATIONS: Manually link the names and descriptions
+      /**
+       * ENHANCE FUNCTION
+       * Maps the raw reservation data to the rich metadata found in the waste table.
+       */
       const enhance = (resList) => resList.map(res => {
-        const wasteInfo = allWaste.find(w => w.waste_id === res.waste_id) || {}
-        const typeInfo = typesList.find(t => t.type_id === wasteInfo.type_id) || {}
+        // We use String() to ensure comparison works regardless of data type (int vs string)
+        const wasteInfo = allWaste.find(w => String(w.waste_id) === String(res.waste_id)) || {}
         
         return {
           ...res,
-          display_name: typeInfo.type_name || 'Recyclable Item',
+          display_name: wasteInfo.type_name || 'Recyclable Item',
           display_desc: wasteInfo.description || 'No description provided',
           display_amount: wasteInfo.amount || '0',
-          display_unit: typeInfo.official_unit || 'kg',
-          // Keep address info if available in waste table
-          city: wasteInfo.city,
-          district: wasteInfo.district,
-          neighborhood: wasteInfo.neighborhood
+          display_unit: wasteInfo.official_unit || 'kg',
+          // Location data pulled from the joined user info in the waste object
+          city: wasteInfo.city || 'N/A',
+          district: wasteInfo.district || '',
+          neighborhood: wasteInfo.neighborhood || '',
+          owner_full_name: `${wasteInfo.first_name || ''} ${wasteInfo.last_name || ''}`.trim()
         }
       })
 
@@ -63,13 +62,18 @@ const Community = () => {
       setToCollect(enhance(collRes.data?.data || []))
       setMyResv(enhance(ownRes.data?.data || []))
     } catch (err) {
-      toast.error('Database connection error')
+      console.error("Fetch error:", err)
+      toast.error('Could not load community data')
     } finally {
       setLoading(false)
     }
   }
 
   const handleCollectAction = async () => {
+    if (!editAmount || parseFloat(editAmount) <= 0) {
+      return toast.error("Please enter a valid amount collected")
+    }
+
     try {
       await api.put(`/reservations/${selectedItem.reservation_id}`, {
         status: 'collected',
@@ -94,10 +98,21 @@ const Community = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Main Content Area */}
           <div className="lg:col-span-8 bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden min-h-[500px]">
             <div className="flex bg-slate-50/50 border-b p-2 gap-2">
-              <button onClick={() => setActiveTab('collector')} className={`flex-1 py-4 font-black text-xs uppercase rounded-xl transition-all ${activeTab === 'collector' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>To Collect</button>
-              <button onClick={() => setActiveTab('owner')} className={`flex-1 py-4 font-black text-xs uppercase rounded-xl transition-all ${activeTab === 'owner' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>My Items</button>
+              <button 
+                onClick={() => setActiveTab('collector')} 
+                className={`flex-1 py-4 font-black text-xs uppercase rounded-xl transition-all ${activeTab === 'collector' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}
+              >
+                To Collect
+              </button>
+              <button 
+                onClick={() => setActiveTab('owner')} 
+                className={`flex-1 py-4 font-black text-xs uppercase rounded-xl transition-all ${activeTab === 'owner' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}
+              >
+                My Items
+              </button>
             </div>
 
             <div className="p-6">
@@ -105,30 +120,40 @@ const Community = () => {
                 <div className="flex justify-center py-20"><span className="loading loading-spinner text-emerald-500"></span></div>
               ) : (
                 <div className="space-y-4">
-                  {(activeTab === 'collector' ? toCollect : myResv).map(item => (
-                    <div key={item.reservation_id} className="flex justify-between items-center p-6 border border-slate-100 rounded-3xl bg-white hover:border-emerald-200 transition-all">
-                      <div className="flex gap-4 items-center">
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl"><FiBox /></div>
-                        <div>
-                          <h4 className="font-black text-slate-800 uppercase text-sm">{item.display_name}</h4>
-                          <p className="text-xs font-bold text-slate-400">{item.display_amount} {item.display_unit} • {item.status}</p>
+                  {(activeTab === 'collector' ? toCollect : myResv).length === 0 ? (
+                    <div className="text-center py-20 text-slate-400 font-bold">No reservations found</div>
+                  ) : (
+                    (activeTab === 'collector' ? toCollect : myResv).map(item => (
+                      <div key={item.reservation_id} className="flex justify-between items-center p-6 border border-slate-100 rounded-3xl bg-white hover:border-emerald-200 transition-all">
+                        <div className="flex gap-4 items-center">
+                          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl"><FiBox /></div>
+                          <div>
+                            <h4 className="font-black text-slate-800 uppercase text-sm">{item.display_name}</h4>
+                            <p className="text-xs font-bold text-slate-400">{item.display_amount} {item.display_unit} • <span className="uppercase text-emerald-600">{item.status}</span></p>
+                          </div>
                         </div>
+                        <button 
+                          onClick={() => { setSelectedItem(item); setEditAmount(item.display_amount); }} 
+                          className="btn btn-sm btn-ghost bg-slate-100 font-bold px-6 rounded-xl"
+                        >
+                          View Details
+                        </button>
                       </div>
-                      <button onClick={() => { setSelectedItem(item); setEditAmount(item.display_amount); }} className="btn btn-sm btn-ghost bg-slate-100 font-bold px-6 rounded-xl">View Details</button>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               )}
             </div>
           </div>
 
+          {/* Leaderboard Sidebar */}
           <div className="lg:col-span-4">
-             <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-6">
+             <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-6 sticky top-8">
                 <h3 className="font-black text-slate-800 uppercase text-xs mb-4 flex items-center gap-2 text-emerald-600"><FiUsers /> Top Contributors</h3>
                 <div className="space-y-3">
                   {leaderboard.map((u, i) => (
-                    <div key={i} className="flex justify-between items-center text-sm">
-                      <span className="text-slate-500 font-bold">{u.first_name}</span>
+                    <div key={i} className="flex justify-between items-center text-sm p-2 rounded-xl hover:bg-slate-50">
+                      <span className="text-slate-500 font-bold">{u.first_name} {u.last_name?.charAt(0)}.</span>
                       <span className="font-black text-emerald-600">{u.total_waste_count} pts</span>
                     </div>
                   ))}
@@ -137,6 +162,7 @@ const Community = () => {
           </div>
         </div>
 
+        {/* Details Modal */}
         {selectedItem && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
             <div className="bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl relative animate-in zoom-in duration-150">
@@ -156,28 +182,41 @@ const Community = () => {
                   </div>
                 </div>
 
-                {activeTab === 'collector' ? (
-                  <div className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex gap-4">
-                    <FiMapPin className="text-emerald-500 mt-1" />
-                    <div className="text-sm">
-                      <p className="font-black text-slate-400 uppercase text-[10px] tracking-widest mb-1">Pickup Location</p>
-                      <p className="text-slate-700 font-bold">{selectedItem.city || 'N/A'}, {selectedItem.neighborhood || ''}</p>
-                    </div>
+                <div className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex gap-4">
+                  <FiMapPin className="text-emerald-500 mt-1" />
+                  <div className="text-sm">
+                    <p className="font-black text-slate-400 uppercase text-[10px] tracking-widest mb-1">Pickup Location</p>
+                    <p className="text-slate-700 font-bold">
+                        {selectedItem.neighborhood}, {selectedItem.district}
+                        <br />
+                        {selectedItem.city}
+                    </p>
                   </div>
-                ) : (
-                  <div className="p-5 bg-blue-50 rounded-[2rem] border border-blue-100 flex gap-4">
-                    <FiCalendar className="text-blue-500 mt-1" />
-                    <div className="text-sm">
-                      <p className="font-black uppercase text-[10px] tracking-widest mb-1 text-blue-400">Scheduled Date</p>
-                      <p className="text-blue-700 font-bold">{new Date(selectedItem.pickup_datetime).toLocaleString()}</p>
-                    </div>
+                </div>
+
+                <div className="p-5 bg-blue-50 rounded-[2rem] border border-blue-100 flex gap-4">
+                  <FiCalendar className="text-blue-500 mt-1" />
+                  <div className="text-sm">
+                    <p className="font-black uppercase text-[10px] tracking-widest mb-1 text-blue-400">Pickup Scheduled</p>
+                    <p className="text-blue-700 font-bold">
+                        {new Date(selectedItem.pickup_datetime).toLocaleDateString()} at {new Date(selectedItem.pickup_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </p>
                   </div>
-                )}
+                </div>
               </div>
 
+              {/* Action Area: Only collector can confirm collection */}
               {activeTab === 'collector' && selectedItem.status !== 'collected' ? (
                 <div className="space-y-4">
-                  <input type="number" className="input input-bordered w-full font-black text-lg" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} />
+                  <div className="form-control">
+                    <label className="label"><span className="label-text font-bold text-slate-500">Confirm Actual Weight/Amount</span></label>
+                    <input 
+                        type="number" 
+                        className="input input-bordered w-full font-black text-lg rounded-2xl" 
+                        value={editAmount} 
+                        onChange={(e) => setEditAmount(e.target.value)} 
+                    />
+                  </div>
                   <button onClick={handleCollectAction} className="btn btn-primary w-full h-16 bg-emerald-600 border-none text-white rounded-2xl font-black uppercase">Complete Collection</button>
                 </div>
               ) : (
