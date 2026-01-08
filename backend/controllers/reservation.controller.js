@@ -649,6 +649,7 @@ module.exports = {
   getReservationById,
   createReservation,
   updateReservation,
+  completeCollection,
   deleteReservation,
   getMyCollectorReservations,
   getMyOwnerReservations
