@@ -200,7 +200,7 @@ const Community = () => {
                 </div>
               </div>
 
-              {activeTab === 'collector' && selectedItem.status === 'pending' ? (
+              {activeTab === 'collector' && selectedItem.status === 'waiting' ? (
                 <div className="space-y-4">
                   <div className="bg-slate-100 p-4 rounded-2xl">
                     <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block">Measured Amount</label>
