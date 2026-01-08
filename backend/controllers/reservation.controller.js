@@ -236,7 +236,7 @@ const createReservation = async (req, res) => {
 const updateReservation = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, pickup_datetime } = req.body;
+    const { status, pickup_datetime, actual_amount } = req.body;
     const user_id = req.user.user_id;
 
     // Rezervasyon kontrolü
@@ -309,6 +309,20 @@ const updateReservation = async (req, res) => {
     `;
 
     const result = await query(sql, values);
+
+    // Update waste amount if actual_amount is provided
+    if (actual_amount !== undefined && status === 'collected') {
+      if (parseFloat(actual_amount) <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Gerçek miktar 0 dan büyük olmalıdır'
+        });
+      }
+      await query(
+        'UPDATE waste SET amount = $1 WHERE waste_id = $2',
+        [actual_amount, reservation.waste_id]
+      );
+    }
 
     // Trigger log'dan mesajı al
     let triggerMessage = null;
