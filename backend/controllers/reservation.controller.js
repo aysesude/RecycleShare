@@ -231,13 +231,21 @@ const createReservation = async (req, res) => {
 
 /**
  * PUT /api/reservations/:id
- * Rezervasyon durumunu güncelle (TRIGGER çalışır)
+ * Rezervasyon durumunu güncelle - ADMIN ONLY
+ * Status: waiting, reserved, cancelled
  */
 const updateReservation = async (req, res) => {
   try {
+    // Admin kontrolü
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Bu işlem sadece adminler tarafından yapılabilir'
+      });
+    }
+
     const { id } = req.params;
-    const { status, pickup_datetime, actual_amount } = req.body;
-    const user_id = req.user.user_id;
+    const { status, pickup_datetime } = req.body;
 
     // Rezervasyon kontrolü
     const resCheck = await query(`
@@ -256,30 +264,18 @@ const updateReservation = async (req, res) => {
 
     const reservation = resCheck.rows[0];
 
-    // Yetki kontrolü: Admin, toplayıcı veya atık sahibi güncelleyebilir
-    if (
-      req.user.role !== 'admin' && 
-      reservation.collector_id !== user_id && 
-      reservation.owner_id !== user_id
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: 'Bu rezervasyonu güncelleme yetkiniz yok'
-      });
-    }
-
     // Dinamik güncelleme
     const updates = [];
     const values = [];
     let paramIndex = 1;
 
     if (status !== undefined) {
-      // Status değeri kontrolü
-      const validStatuses = ['waiting', 'reserved', 'collected', 'cancelled'];
+      // Status değeri kontrolü - Admin sadece waiting, reserved, cancelled yapabilir
+      const validStatuses = ['waiting', 'reserved', 'cancelled'];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({
           success: false,
-          message: 'Geçersiz durum. Geçerli değerler: ' + validStatuses.join(', ')
+          message: 'Geçersiz durum. Admin yapabilir: ' + validStatuses.join(', ')
         });
       }
       updates.push(`status = $${paramIndex}`);
@@ -310,53 +306,22 @@ const updateReservation = async (req, res) => {
 
     const result = await query(sql, values);
 
-    // Update waste amount if actual_amount is provided
-    if (actual_amount !== undefined && status === 'collected') {
-      if (parseFloat(actual_amount) <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Gerçek miktar 0 dan büyük olmalıdır'
-        });
-      }
+    // Eğer cancelled yapılıyorsa waste'i waiting'e çevir
+    if (status === 'cancelled') {
       await query(
-        'UPDATE waste SET amount = $1 WHERE waste_id = $2',
-        [actual_amount, reservation.waste_id]
+        'UPDATE waste SET status = $1 WHERE waste_id = $2',
+        ['waiting', reservation.waste_id]
       );
-    }
-
-    // Trigger log'dan mesajı al
-    let triggerMessage = null;
-    if (status === 'collected' || status === 'cancelled') {
-      const triggerLog = await query(`
-        SELECT message FROM trigger_logs 
-        WHERE trigger_name = 'trg_reservation_status_change'
-        AND table_name = 'reservations'
-        ORDER BY created_at DESC LIMIT 1
-      `);
-      
-      if (triggerLog.rows.length > 0) {
-        triggerMessage = triggerLog.rows[0].message;
-      }
     }
 
     res.json({
       success: true,
-      message: 'Rezervasyon başarıyla güncellendi',
-      triggerMessage: triggerMessage,
+      message: 'Rezervasyon başarıyla güncellendi (Admin)',
       data: result.rows[0]
     });
 
   } catch (error) {
     console.error('updateReservation error:', error);
-    
-    if (error.message.includes('violates check constraint')) {
-      return res.status(400).json({
-        success: false,
-        message: 'Geçersiz durum değeri',
-        error: error.message
-      });
-    }
-
     res.status(500).json({
       success: false,
       message: 'Rezervasyon güncellenirken hata oluştu',
@@ -364,6 +329,179 @@ const updateReservation = async (req, res) => {
     });
   }
 };
+
+/**
+ * POST /api/reservations/:id/complete-collection
+ * Teslimat ve Veri Doğrulama: Collector tarafından çağrılır
+ * 1. Waste amount güncellenir
+ * 2. Reservation status = 'collected'
+ * 3. Waste status = 'collected'
+ * 4. Otomatik puan hesaplaması (Trigger)
+ *    - Owner: recycle_score * amount
+ *    - Collector: Owner puanının %70'i
+ */
+const completeCollection = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { actual_amount } = req.body;
+    const collector_id = req.user.user_id;
+
+    // Validasyon
+    if (!actual_amount || parseFloat(actual_amount) <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Geçerli bir miktar giriniz (0 dan büyük olmalı)'
+      });
+    }
+
+    // Rezervasyon kontrolü
+    const resCheck = await query(`
+      SELECT r.*, w.waste_id, w.user_id as owner_id, w.type_id
+      FROM reservations r
+      JOIN waste w ON r.waste_id = w.waste_id
+      WHERE r.reservation_id = $1
+    `, [id]);
+
+    if (resCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Rezervasyon bulunamadı'
+      });
+    }
+
+    const reservation = resCheck.rows[0];
+
+    // Yetki kontrolü: Sadece bu rezervasyonun toplayıcısı yapabilir
+    if (reservation.collector_id !== collector_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bu koleksiyonu tamamlama yetkiniz yok'
+      });
+    }
+
+    // Durum kontrolü: Sadece waiting veya reserved durumdan tamamlanabilir
+    if (!['waiting', 'reserved'].includes(reservation.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Bu rezervasyon zaten ${reservation.status} durumundadır`
+      });
+    }
+
+    // Atık türü bilgisini al (recycle_score için)
+    const wasteTypeResult = await query(
+      'SELECT recycle_score FROM waste_types WHERE type_id = $1',
+      [reservation.type_id]
+    );
+
+    if (wasteTypeResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Atık türü bulunamadı'
+      });
+    }
+
+    const recycleScore = wasteTypeResult.rows[0].recycle_score;
+    const ownerPoints = Math.floor(recycleScore * parseFloat(actual_amount));
+    const collectorPoints = Math.floor(ownerPoints * 0.7);
+
+    // Transaction başlat
+    await query('BEGIN');
+
+    try {
+      // 1. Waste amount'ı güncelle
+      await query(
+        'UPDATE waste SET amount = $1, status = $2 WHERE waste_id = $3',
+        [actual_amount, 'collected', reservation.waste_id]
+      );
+
+      // 2. Reservation statusunu güncelle
+      await query(
+        'UPDATE reservations SET status = $1 WHERE reservation_id = $2',
+        ['collected', id]
+      );
+
+      // 3. Owner'a puan ekle
+      const currentMonth = new Date().getMonth() + 1;
+      const currentYear = new Date().getFullYear();
+
+      await query(`
+        INSERT INTO environmental_scores (user_id, month, year, total_score)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (user_id, month, year)
+        DO UPDATE SET total_score = environmental_scores.total_score + $4
+      `, [reservation.owner_id, currentMonth, currentYear, ownerPoints]);
+
+      // 4. Collector'a puan ekle
+      await query(`
+        INSERT INTO environmental_scores (user_id, month, year, total_score)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (user_id, month, year)
+        DO UPDATE SET total_score = environmental_scores.total_score + $4
+      `, [collector_id, currentMonth, currentYear, collectorPoints]);
+
+      // 5. Trigger log'a kaydet
+      await query(
+        `INSERT INTO trigger_logs (trigger_name, table_name, action, new_data, message)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          'completeCollection',
+          'reservations',
+          'UPDATE',
+          JSON.stringify({ reservation_id: id, status: 'collected', actual_amount }),
+          `Koleksiyon tamamlandı! Owner: +${ownerPoints} PTS, Collector: +${collectorPoints} PTS`
+        ]
+      );
+
+      // Transaction commit
+      await query('COMMIT');
+
+      // Güncellenmiş veriyi döndür
+      const updatedRes = await query(
+        'SELECT * FROM reservations WHERE reservation_id = $1',
+        [id]
+      );
+
+      res.json({
+        success: true,
+        message: 'Koleksiyon başarıyla tamamlandı!',
+        data: {
+          reservation: updatedRes.rows[0],
+          pointsAwarded: {
+            owner: {
+              userId: reservation.owner_id,
+              points: ownerPoints,
+              reason: `${recycleScore} score × ${actual_amount} amount`
+            },
+            collector: {
+              userId: collector_id,
+              points: collectorPoints,
+              reason: `70% of owner's points`
+            }
+          },
+          wasteUpdated: {
+            wasteId: reservation.waste_id,
+            newAmount: actual_amount,
+            status: 'collected'
+          }
+        }
+      });
+
+    } catch (txError) {
+      await query('ROLLBACK');
+      console.error('completeCollection transaction error:', txError);
+      throw txError;
+    }
+
+  } catch (error) {
+    console.error('completeCollection error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Koleksiyon tamamlanırken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
 
 /**
  * DELETE /api/reservations/:id

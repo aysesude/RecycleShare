@@ -72,9 +72,8 @@ const Community = () => {
     }
 
     try {
-      // Backend expects: PUT /api/reservations/:id with { status, actual_amount }
-      await api.put(`/reservations/${selectedItem.reservation_id}`, {
-        status: 'collected',
+      // Call new dedicated endpoint for completing collection
+      await api.post(`/reservations/${selectedItem.reservation_id}/complete-collection`, {
         actual_amount: parseFloat(editAmount)
       });
 

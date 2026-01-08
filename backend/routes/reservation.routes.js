@@ -20,5 +20,6 @@ router.get('/:id', reservationController.getReservationById);
 router.post('/', reservationController.createReservation);
 router.put('/:id', reservationController.updateReservation);
 router.delete('/:id', reservationController.deleteReservation);
+router.post('/:id/complete-collection', reservationController.completeCollection);
 
 module.exports = router;
