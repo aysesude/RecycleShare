@@ -30,4 +30,10 @@ router.delete('/waste-types/:id', adminController.deleteWasteType);
 // Trigger logs
 router.get('/trigger-logs', adminController.getTriggerLogs);
 
+// Database Explorer - Veritabanı Gezgini
+router.get('/database/tables', adminController.getTableList);
+router.get('/database/tables/:name/schema', adminController.getTableSchema);
+router.get('/database/tables/:name/data', adminController.getTableData);
+router.get('/database/schema', adminController.getDatabaseSchema);
+
 module.exports = router;

@@ -3,19 +3,19 @@ import { Link, useNavigate } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
 import toast from 'react-hot-toast'
 import AuthLayout from '../components/AuthLayout'
-import { 
-  TextInput, 
-  PasswordInput, 
-  LoadingButton, 
+import {
+  TextInput,
+  PasswordInput,
+  LoadingButton,
   Divider,
-  FiMail 
+  FiMail
 } from '../components/FormElements'
 import { useAuth } from '../context/AuthContext'
 
 const Login = () => {
   const navigate = useNavigate()
   const { login, googleAuth } = useAuth()
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -36,41 +36,47 @@ const Login = () => {
 
   const validateForm = () => {
     const newErrors = {}
-    
+
     if (!formData.email) {
       newErrors.email = 'Email is required'
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email'
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required'
     }
-    
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!validateForm()) return
-    
+
     setLoading(true)
     try {
       const response = await login(formData.email, formData.password)
-      
+
       if (response.success) {
         toast.success('Welcome back! 🌿')
-        navigate('/dashboard')
+        // Role-based redirect
+        const user = response.data.user
+        if (user?.role === 'admin') {
+          navigate('/admin/dashboard')
+        } else {
+          navigate('/dashboard')
+        }
       }
     } catch (error) {
       const errorData = error.response?.data
-      
+
       if (errorData?.data?.requiresVerification) {
         toast.error('Please verify your email first')
-        navigate('/verify-otp', { 
-          state: { email: errorData.data.email } 
+        navigate('/verify-otp', {
+          state: { email: errorData.data.email }
         })
       } else {
         toast.error(errorData?.message || 'Login failed. Please try again.')
@@ -85,7 +91,7 @@ const Login = () => {
     setGoogleLoading(true)
     try {
       const response = await googleAuth(credentialResponse.credential)
-      
+
       if (response.success) {
         if (response.data.requiresPhone) {
           navigate('/google-phone-setup', {
@@ -99,7 +105,13 @@ const Login = () => {
           })
         } else {
           toast.success('Welcome back! 🌿')
-          navigate('/dashboard')
+          // Role-based redirect
+          const user = response.data.user
+          if (user?.role === 'admin') {
+            navigate('/admin/dashboard')
+          } else {
+            navigate('/dashboard')
+          }
         }
       }
     } catch (error) {
@@ -114,8 +126,8 @@ const Login = () => {
   }
 
   return (
-    <AuthLayout 
-      title="Welcome Back" 
+    <AuthLayout
+      title="Welcome Back"
       subtitle="Sign in to continue your eco journey"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -145,8 +157,8 @@ const Login = () => {
 
         {/* Forgot Password Link */}
         <div className="text-right">
-          <Link 
-            to="/forgot-password" 
+          <Link
+            to="/forgot-password"
             className="text-sm text-emerald-600 hover:text-emerald-700 hover:underline"
           >
             Forgot password?
@@ -186,8 +198,8 @@ const Login = () => {
       {/* Sign Up Link */}
       <p className="text-center mt-6 text-gray-600">
         Don't have an account?{' '}
-        <Link 
-          to="/register" 
+        <Link
+          to="/register"
           className="text-emerald-600 font-semibold hover:text-emerald-700 hover:underline"
         >
           Sign up for free

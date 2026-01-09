@@ -33,12 +33,12 @@ api.interceptors.response.use(
     if (error.code === 'ECONNABORTED') {
       error.message = 'Request timed out. Server might be starting up, please try again.'
     }
-    
+
     // Handle network error
     if (!error.response) {
       error.message = 'Network error. Please check your connection.'
     }
-    
+
     if (error.response?.status === 401) {
       // Token expired or invalid
       localStorage.removeItem('token')
@@ -90,6 +90,69 @@ export const authAPI = {
   // Get current user
   getCurrentUser: async () => {
     const response = await api.get('/auth/me')
+    return response.data
+  }
+}
+
+// Admin API calls
+export const adminAPI = {
+  // Dashboard
+  getDashboard: async () => {
+    const response = await api.get('/admin/dashboard')
+    return response.data
+  },
+
+  // User Management
+  getAllUsers: async (params = {}) => {
+    const response = await api.get('/admin/users', { params })
+    return response.data
+  },
+
+  updateUserRole: async (userId, role) => {
+    const response = await api.put(`/admin/users/${userId}/role`, { role })
+    return response.data
+  },
+
+  updateUserStatus: async (userId, isActive) => {
+    const response = await api.put(`/admin/users/${userId}/status`, { is_active: isActive })
+    return response.data
+  },
+
+  deleteUser: async (userId) => {
+    const response = await api.delete(`/admin/users/${userId}`)
+    return response.data
+  },
+
+  // Waste Types
+  getWasteTypes: async () => {
+    const response = await api.get('/admin/waste-types')
+    return response.data
+  },
+
+  // Trigger Logs
+  getTriggerLogs: async (limit = 50) => {
+    const response = await api.get('/admin/trigger-logs', { params: { limit } })
+    return response.data
+  },
+
+  // Database Explorer
+  getTableList: async () => {
+    const response = await api.get('/admin/database/tables')
+    return response.data
+  },
+
+  getTableSchema: async (tableName) => {
+    const response = await api.get(`/admin/database/tables/${tableName}/schema`)
+    return response.data
+  },
+
+  getTableData: async (tableName, page = 1, limit = 20) => {
+    const response = await api.get(`/admin/database/tables/${tableName}/data`, { params: { page, limit } })
+    return response.data
+  },
+
+  getDatabaseSchema: async () => {
+    const response = await api.get('/admin/database/schema')
     return response.data
   }
 }

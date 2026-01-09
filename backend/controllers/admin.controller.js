@@ -270,7 +270,7 @@ const createWasteType = async (req, res) => {
 
   } catch (error) {
     console.error('createWasteType error:', error);
-    
+
     if (error.message.includes('duplicate key')) {
       return res.status(400).json({
         success: false,
@@ -405,7 +405,7 @@ const deleteWasteType = async (req, res) => {
 
   } catch (error) {
     console.error('deleteWasteType error:', error);
-    
+
     // RESTRICT constraint hatası
     if (error.message.includes('violates foreign key constraint')) {
       return res.status(400).json({
@@ -519,6 +519,251 @@ const getDashboard = async (req, res) => {
   }
 };
 
+// ============================================
+// DATABASE EXPLORER - Veritabanı Gezgini
+// ============================================
+
+/**
+ * GET /api/admin/database/tables
+ * Tüm tabloları listele
+ */
+const getTableList = async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT 
+        table_name,
+        (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = t.table_name AND table_schema = 'public') as column_count
+      FROM information_schema.tables t
+      WHERE table_schema = 'public' 
+        AND table_type = 'BASE TABLE'
+      ORDER BY table_name
+    `);
+
+    // Her tablo için kayıt sayısını al
+    const tablesWithCounts = await Promise.all(
+      result.rows.map(async (table) => {
+        const countResult = await query(`SELECT COUNT(*) FROM "${table.table_name}"`);
+        return {
+          ...table,
+          row_count: parseInt(countResult.rows[0].count)
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      count: tablesWithCounts.length,
+      data: tablesWithCounts
+    });
+
+  } catch (error) {
+    console.error('getTableList error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Tablo listesi alınırken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * GET /api/admin/database/tables/:name/schema
+ * Tablo şemasını getir (columns, types, constraints)
+ */
+const getTableSchema = async (req, res) => {
+  try {
+    const { name } = req.params;
+
+    // Column bilgilerini al
+    const columns = await query(`
+      SELECT 
+        c.column_name,
+        c.data_type,
+        c.character_maximum_length,
+        c.is_nullable,
+        c.column_default,
+        CASE WHEN pk.column_name IS NOT NULL THEN true ELSE false END as is_primary_key,
+        CASE WHEN fk.column_name IS NOT NULL THEN true ELSE false END as is_foreign_key,
+        fk.foreign_table_name,
+        fk.foreign_column_name
+      FROM information_schema.columns c
+      LEFT JOIN (
+        SELECT ku.column_name
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage ku ON tc.constraint_name = ku.constraint_name
+        WHERE tc.table_name = $1 AND tc.constraint_type = 'PRIMARY KEY'
+      ) pk ON c.column_name = pk.column_name
+      LEFT JOIN (
+        SELECT 
+          kcu.column_name,
+          ccu.table_name as foreign_table_name,
+          ccu.column_name as foreign_column_name
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
+        JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name
+        WHERE tc.table_name = $1 AND tc.constraint_type = 'FOREIGN KEY'
+      ) fk ON c.column_name = fk.column_name
+      WHERE c.table_name = $1 AND c.table_schema = 'public'
+      ORDER BY c.ordinal_position
+    `, [name]);
+
+    // CHECK constraints
+    const checks = await query(`
+      SELECT 
+        tc.constraint_name,
+        cc.check_clause
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.check_constraints cc ON tc.constraint_name = cc.constraint_name
+      WHERE tc.table_name = $1 AND tc.constraint_type = 'CHECK'
+    `, [name]);
+
+    // Index bilgileri
+    const indexes = await query(`
+      SELECT indexname, indexdef
+      FROM pg_indexes
+      WHERE tablename = $1
+    `, [name]);
+
+    res.json({
+      success: true,
+      tableName: name,
+      data: {
+        columns: columns.rows,
+        checkConstraints: checks.rows,
+        indexes: indexes.rows
+      }
+    });
+
+  } catch (error) {
+    console.error('getTableSchema error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Tablo şeması alınırken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * GET /api/admin/database/tables/:name/data
+ * Tablo verilerini getir (paginated)
+ */
+const getTableData = async (req, res) => {
+  try {
+    const { name } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    // Güvenlik: Sadece izin verilen tablolar
+    const allowedTables = ['users', 'waste', 'waste_types', 'reservations', 'environmental_scores', 'trigger_logs', 'pending_registrations'];
+    if (!allowedTables.includes(name)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Geçersiz tablo adı'
+      });
+    }
+
+    const countResult = await query(`SELECT COUNT(*) FROM "${name}"`);
+    const totalRows = parseInt(countResult.rows[0].count);
+
+    const result = await query(`SELECT * FROM "${name}" LIMIT $1 OFFSET $2`, [limit, offset]);
+
+    res.json({
+      success: true,
+      tableName: name,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalRows,
+        totalPages: Math.ceil(totalRows / limit)
+      },
+      data: result.rows
+    });
+
+  } catch (error) {
+    console.error('getTableData error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Tablo verileri alınırken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * GET /api/admin/database/schema
+ * ER diyagramı için veritabanı şemasını getir
+ */
+const getDatabaseSchema = async (req, res) => {
+  try {
+    // Tüm tablolar
+    const tables = await query(`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+      ORDER BY table_name
+    `);
+
+    // Her tablo için columns
+    const tableDetails = await Promise.all(
+      tables.rows.map(async (table) => {
+        const columns = await query(`
+          SELECT 
+            c.column_name,
+            c.data_type,
+            c.is_nullable,
+            CASE WHEN pk.column_name IS NOT NULL THEN true ELSE false END as is_primary_key
+          FROM information_schema.columns c
+          LEFT JOIN (
+            SELECT ku.column_name
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage ku ON tc.constraint_name = ku.constraint_name
+            WHERE tc.table_name = $1 AND tc.constraint_type = 'PRIMARY KEY'
+          ) pk ON c.column_name = pk.column_name
+          WHERE c.table_name = $1 AND c.table_schema = 'public'
+          ORDER BY c.ordinal_position
+        `, [table.table_name]);
+
+        return {
+          name: table.table_name,
+          columns: columns.rows
+        };
+      })
+    );
+
+    // Foreign key ilişkileri
+    const relationships = await query(`
+      SELECT
+        tc.table_name as source_table,
+        kcu.column_name as source_column,
+        ccu.table_name as target_table,
+        ccu.column_name as target_column,
+        rc.delete_rule
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
+      JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name
+      JOIN information_schema.referential_constraints rc ON tc.constraint_name = rc.constraint_name
+      WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public'
+    `);
+
+    res.json({
+      success: true,
+      data: {
+        tables: tableDetails,
+        relationships: relationships.rows
+      }
+    });
+
+  } catch (error) {
+    console.error('getDatabaseSchema error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Veritabanı şeması alınırken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   updateUserRole,
@@ -529,5 +774,9 @@ module.exports = {
   updateWasteType,
   deleteWasteType,
   getTriggerLogs,
-  getDashboard
+  getDashboard,
+  getTableList,
+  getTableSchema,
+  getTableData,
+  getDatabaseSchema
 };

@@ -11,6 +11,9 @@ import Listings from './pages/Listings'
 import BrowseListings from './pages/BrowseListings'
 import ViewImpact from './pages/Impact';
 import Community from './pages/Community'
+import AdminDashboard from './pages/AdminDashboard'
+import DatabaseExplorer from './pages/DatabaseExplorer'
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth()
@@ -30,6 +33,29 @@ const ProtectedRoute = ({ children }) => {
   return children
 }
 
+// Admin Route Component (requires admin role)
+const AdminRoute = ({ children }) => {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <span className="loading loading-spinner loading-lg text-emerald-500"></span>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (user.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return children
+}
+
 // Public Route Component (redirect if logged in)
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth()
@@ -43,6 +69,10 @@ const PublicRoute = ({ children }) => {
   }
 
   if (user) {
+    // Role-based redirect
+    if (user.role === 'admin') {
+      return <Navigate to="/admin/dashboard" replace />
+    }
     return <Navigate to="/dashboard" replace />
   }
 
@@ -54,35 +84,35 @@ function App() {
     <div className="min-h-screen eco-pattern">
       <Routes>
         {/* Public Routes */}
-        <Route 
-          path="/login" 
+        <Route
+          path="/login"
           element={
             <PublicRoute>
               <Login />
             </PublicRoute>
-          } 
+          }
         />
-        <Route 
-          path="/register" 
+        <Route
+          path="/register"
           element={
             <PublicRoute>
               <Register />
             </PublicRoute>
-          } 
+          }
         />
         <Route path="/verify-otp" element={<VerifyOTP />} />
         <Route path="/google-phone-setup" element={<GooglePhoneSetup />} />
 
         {/* Protected Routes */}
-        <Route 
-          path="/dashboard" 
+        <Route
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
+        <Route
           path="/listings"
           element={
             <ProtectedRoute>
@@ -90,7 +120,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route 
+        <Route
           path="/browse"
           element={
             <ProtectedRoute>
@@ -98,20 +128,38 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route 
-          path="/impact" 
+        <Route
+          path="/impact"
           element={
             <ProtectedRoute>
               <ViewImpact />
             </ProtectedRoute>
-          } 
+          }
         />
-          <Route
+        <Route
           path="/community"
           element={
             <ProtectedRoute>
               <Community />
             </ProtectedRoute>
+          }
+        />
+
+        {/* Admin Routes */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/database"
+          element={
+            <AdminRoute>
+              <DatabaseExplorer />
+            </AdminRoute>
           }
         />
 
@@ -124,3 +172,4 @@ function App() {
 }
 
 export default App
+
