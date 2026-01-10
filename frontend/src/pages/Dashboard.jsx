@@ -31,8 +31,8 @@ const Dashboard = () => {
             <div className="flex items-center gap-4">
               <div className="hidden sm:flex items-center gap-2">
                 {user?.profilePicture ? (
-                  <img 
-                    src={user.profilePicture} 
+                  <img
+                    src={user.profilePicture}
                     alt={user.firstName}
                     className="w-8 h-8 rounded-full"
                   />
@@ -43,6 +43,16 @@ const Dashboard = () => {
                 )}
                 <span className="text-gray-700 font-medium">{user?.firstName}</span>
               </div>
+              {/* Admin Panel Button - only for admins */}
+              {user?.role === 'admin' && (
+                <button
+                  onClick={() => navigate('/admin/dashboard')}
+                  className="btn btn-sm bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-none hover:from-emerald-600 hover:to-teal-600"
+                >
+                  <FiShield className="w-4 h-4" />
+                  <span className="hidden sm:inline ml-1">Admin Panel</span>
+                </button>
+              )}
               <button
                 onClick={handleLogout}
                 className="btn btn-ghost btn-sm text-gray-600 hover:text-red-500 hover:bg-red-50"
@@ -87,11 +97,11 @@ const Dashboard = () => {
               <FiUser className="text-emerald-500" />
               Profile Information
             </h2>
-            
+
             <div className="flex flex-col items-center mb-6">
               {user?.profilePicture ? (
-                <img 
-                  src={user.profilePicture} 
+                <img
+                  src={user.profilePicture}
                   alt={user.firstName}
                   className="w-24 h-24 rounded-full border-4 border-eco-100 mb-4"
                 />
@@ -120,9 +130,9 @@ const Dashboard = () => {
               <div className="flex items-center gap-3 text-gray-600">
                 <FiCalendar className="w-5 h-5 text-emerald-500" />
                 <span className="text-sm">
-                  Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { 
-                    month: 'long', 
-                    year: 'numeric' 
+                  Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
+                    month: 'long',
+                    year: 'numeric'
                   }) : 'N/A'}
                 </span>
               </div>
@@ -135,7 +145,7 @@ const Dashboard = () => {
               <h2 className="text-lg font-semibold text-gray-800 mb-4">
                 🎯 Quick Actions
               </h2>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button onClick={() => navigate('/listings')} className="flex items-center gap-4 p-4 bg-eco-50 rounded-xl hover:bg-eco-100 transition-colors group">
                   <div className="w-12 h-12 bg-eco-gradient rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">

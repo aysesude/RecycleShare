@@ -130,6 +130,13 @@ const AdminDashboard = () => {
                                 <span className="text-emerald-300 text-xs px-2 py-0.5 bg-emerald-500/30 rounded">Admin</span>
                             </div>
                             <button
+                                onClick={() => navigate('/dashboard')}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg transition-colors"
+                            >
+                                <span className="text-lg">👤</span>
+                                <span className="hidden sm:inline">User Panel</span>
+                            </button>
+                            <button
                                 onClick={handleLogout}
                                 className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition-colors"
                             >
