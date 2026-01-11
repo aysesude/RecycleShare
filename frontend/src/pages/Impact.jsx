@@ -93,42 +93,53 @@ const ViewImpact = () => {
           </div>
         </div>
 
-        {/* Grafik Kartı */}
+        {/* Grafik Kartı - Animasyonlu Barlar */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-medium text-emerald-800 mb-4">Monthly Impact Progress</h2>
-          <div className="w-full overflow-x-auto">
-            <svg
-              viewBox={`0 0 ${Math.max(stats.monthlyProgress.length * 48, 100)} ${chartHeight + 40}`}
-              width="100%"
-              height={chartHeight + 40}
-              className="mx-auto"
-            >
-              {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
-                const y = 10 + (1 - t) * chartHeight;
-                return (
-                  <g key={i}>
-                    <line x1="0" x2="100%" y1={y} y2={y} stroke="#ecfdf5" strokeWidth="1" />
-                    <text x={10} y={y + 4} fontSize="10" fill="#065f46">{Math.round(maxValue * t)}</text>
-                  </g>
-                );
-              })}
+          <h2 className="text-lg font-medium text-emerald-800 mb-6">Monthly Impact Progress</h2>
 
-              {/* Barlar artık stats.monthlyProgress'den geliyor */}
+          {stats.monthlyProgress.length > 0 ? (
+            <div className="space-y-4">
               {stats.monthlyProgress.map((d, i) => {
-                const barWidth = 28;
-                const gap = 20;
-                const x = i * (barWidth + gap) + 40;
-                const height = (d.value / maxValue) * chartHeight;
-                const y = 10 + (chartHeight - height);
+                const percentage = maxValue > 0 ? (d.value / maxValue) * 100 : 0;
                 return (
-                  <g key={i} transform={`translate(${x},0)`}>
-                    <rect x={0} y={y} width={barWidth} height={height} rx={6} fill="#10b981" />
-                    <text x={barWidth / 2} y={chartHeight + 26} fontSize="11" fill="#065f46" textAnchor="middle">{d.month}</text>
-                  </g>
+                  <div key={i} className="group">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-semibold text-slate-700">{d.month}</span>
+                      <span className="text-sm font-bold text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {d.value} kg
+                      </span>
+                    </div>
+                    <div className="h-8 bg-emerald-100 rounded-full overflow-hidden relative">
+                      <div
+                        className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full transition-all duration-1000 ease-out flex items-center justify-end pr-3"
+                        style={{
+                          width: `${percentage}%`,
+                          animation: `growBar 1s ease-out ${i * 0.15}s both`
+                        }}
+                      >
+                        <span className="text-white text-xs font-bold drop-shadow-sm">
+                          {d.value} kg
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
-            </svg>
-          </div>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">📊</div>
+              <p className="text-slate-400">Henüz veri yok</p>
+              <p className="text-sm text-slate-300 mt-1">Atıklar toplandığında burada görünecek</p>
+            </div>
+          )}
+
+          <style>{`
+            @keyframes growBar {
+              from { width: 0%; opacity: 0; }
+              to { opacity: 1; }
+            }
+          `}</style>
         </div>
       </div>
     </div>

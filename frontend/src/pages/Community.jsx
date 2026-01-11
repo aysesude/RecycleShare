@@ -133,12 +133,45 @@ const Community = () => {
             <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-6 sticky top-8">
               <h3 className="text-xs mb-4 flex items-center gap-2 text-emerald-600 uppercase"><FiUsers /> Top Contributors</h3>
               <div className="space-y-3">
-                {leaderboard.map((u, i) => (
-                  <div key={i} className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition-colors">
-                    <span className="text-slate-600 font-bold text-sm">{u.full_name}</span>
-                    <span className="text-emerald-600 font-black text-sm">{u.waste_count} PTS</span>
+                {leaderboard.slice(0, 5).map((u, i) => (
+                  <div
+                    key={i}
+                    className={`p-4 rounded-2xl border transition-all hover:shadow-md ${i === 0 ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200' :
+                        i === 1 ? 'bg-gradient-to-r from-slate-50 to-gray-50 border-slate-200' :
+                          i === 2 ? 'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200' :
+                            'bg-slate-50 border-slate-100'
+                      }`}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-black ${i === 0 ? 'bg-amber-400 text-white' :
+                          i === 1 ? 'bg-slate-400 text-white' :
+                            i === 2 ? 'bg-orange-400 text-white' :
+                              'bg-emerald-100 text-emerald-600'
+                        }`}>
+                        {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-slate-800 text-sm">{u.full_name}</h4>
+                        <p className="text-xs text-slate-400">{u.city || 'Bilinmiyor'}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-emerald-600 font-black text-lg">🌱 {u.total_score || 0}</span>
+                        <p className="text-[10px] text-slate-400 uppercase">puan</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-4 text-[10px] text-slate-500 pl-13">
+                      <span className="flex items-center gap-1">
+                        <FiBox className="text-emerald-500" /> {u.waste_count} atık
+                      </span>
+                      <span className="flex items-center gap-1">
+                        ♻️ {u.collected_count || 0} toplanan
+                      </span>
+                    </div>
                   </div>
                 ))}
+                {leaderboard.length === 0 && (
+                  <p className="text-center py-6 text-slate-300 text-sm">Henüz veri yok</p>
+                )}
               </div>
             </div>
           </div>

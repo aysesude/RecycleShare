@@ -177,25 +177,28 @@ const getTopContributors = async (req, res) => {
     const result = await query(`
       SELECT 
         u.user_id,
+        u.first_name,
+        u.last_name,
         u.first_name || ' ' || u.last_name AS full_name,
         u.email,
         u.city,
         COUNT(w.waste_id) AS waste_count,
         SUM(w.amount) AS total_amount,
-        AVG(w.amount)::DECIMAL(10,2) AS avg_amount,
+        COUNT(CASE WHEN w.status = 'collected' THEN 1 END) AS collected_count,
+        COALESCE((SELECT SUM(total_score) FROM environmental_scores es WHERE es.user_id = u.user_id), 0) AS total_score,
         MAX(w.record_date) AS last_contribution
       FROM users u
       JOIN waste w ON u.user_id = w.user_id
       GROUP BY u.user_id, u.first_name, u.last_name, u.email, u.city
       HAVING COUNT(w.waste_id) >= $1
-      ORDER BY waste_count DESC, total_amount DESC
+      ORDER BY total_score DESC, waste_count DESC
     `, [threshold]);
 
     res.json({
       success: true,
       message: `En az ${threshold} atık paylaşan kullanıcılar (AGGREGATE + HAVING)`,
       count: result.rows.length,
-      sqlUsed: 'COUNT, SUM, AVG, MAX + HAVING',
+      sqlUsed: 'COUNT, SUM, CASE WHEN + HAVING',
       threshold: parseInt(threshold),
       data: result.rows
     });
