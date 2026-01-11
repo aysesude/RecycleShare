@@ -1,33 +1,32 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiBox, FiCloud, FiUsers } from "react-icons/fi";
+import { wasteAPI } from '../services/api';
 
 const ViewImpact = () => {
   const navigate = useNavigate();
-  
+
   const [stats, setStats] = useState({
     itemsShared: 0,
     co2Saved: "0.0",
     communityConnections: 0,
-    monthlyProgress: [] 
+    totalScore: 0,
+    monthlyProgress: []
   });
 
   useEffect(() => {
     const fetchImpactData = async () => {
       try {
-        const token = localStorage.getItem('token'); 
-        const response = await axios.get('https://recycleshare.onrender.com/api/waste/stats', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await wasteAPI.getImpactStats();
 
-        if (response.data.success && response.data.data) {
-          const apiData = response.data.data;
+        if (response.success && response.data) {
+          const apiData = response.data;
           setStats({
             itemsShared: apiData.itemsShared || 0,
             co2Saved: apiData.co2Saved || "0.0",
             communityConnections: apiData.connections || 0,
-            monthlyProgress: apiData.monthlyImpact || [] 
+            totalScore: apiData.totalScore || 0,
+            monthlyProgress: apiData.monthlyImpact || []
           });
         }
       } catch (error) {
@@ -37,8 +36,8 @@ const ViewImpact = () => {
     fetchImpactData();
   }, []);
 
-  const maxValue = stats.monthlyProgress.length > 0 
-    ? Math.max(...stats.monthlyProgress.map((d) => d.value), 10) 
+  const maxValue = stats.monthlyProgress.length > 0
+    ? Math.max(...stats.monthlyProgress.map((d) => d.value), 10)
     : 10;
   const chartHeight = 160;
 

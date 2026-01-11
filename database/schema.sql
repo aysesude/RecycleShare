@@ -3,7 +3,7 @@
 -- PostgreSQL 17 (Neon Cloud)
 -- ============================================
 -- Ödev Gereksinimleri:
--- ✅ En az 4 tablo (5 tablo var: users, waste_types, waste, reservations, environmental_scores)
+-- ✅ En az 4 tablo (6 tablo var: users, waste_types, waste, reservations, environmental_scores, trigger_logs)
 -- ✅ Her tabloda en az 10 kayıt
 -- ✅ Primary key ve foreign key kısıtları
 -- ✅ Silme kısıtı (ON DELETE CASCADE/RESTRICT)
@@ -18,21 +18,8 @@
 -- ============================================
 
 -- ============================================
--- 1. TABLOLAR
+-- 1. TABLOLAR (6 tablo: users, waste_types, waste, reservations, environmental_scores, trigger_logs)
 -- ============================================
-
--- Pending Registrations (OTP doğrulama bekleyenler)
-CREATE TABLE IF NOT EXISTS pending_registrations (
-    id SERIAL PRIMARY KEY,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    phone VARCHAR(20) UNIQUE NOT NULL,
-    verification_code VARCHAR(6) NOT NULL,
-    verification_code_expires TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
 -- Users (Kullanıcılar)
 CREATE TABLE IF NOT EXISTS users (

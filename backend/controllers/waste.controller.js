@@ -265,7 +265,7 @@ const createWaste = async (req, res) => {
 
   } catch (error) {
     console.error('createWaste error:', error);
-    
+
     // Check constraint hatası
     if (error.message.includes('violates check constraint')) {
       return res.status(400).json({
@@ -369,7 +369,7 @@ const updateWaste = async (req, res) => {
         AND (new_data->>'waste_id')::int = $1
         ORDER BY created_at DESC LIMIT 1
       `, [id]);
-      
+
       if (triggerLog.rows.length > 0) {
         triggerMessage = triggerLog.rows[0].message;
       }
@@ -384,7 +384,7 @@ const updateWaste = async (req, res) => {
 
   } catch (error) {
     console.error('updateWaste error:', error);
-    
+
     if (error.message.includes('violates check constraint')) {
       return res.status(400).json({
         success: false,
@@ -522,22 +522,35 @@ const getWasteTypes = async (req, res) => {
 };
 const getImpactStats = async (req, res) => {
   try {
-    // 1. Kullanıcı ID'sini güvenli bir şekilde al ve tam sayıya çevir
+    // 1. Kullanıcı ID'sini güvenli bir şekilde al
     const userId = parseInt(req.user?.user_id || req.user?.id, 10);
-    
+
     if (isNaN(userId) || userId <= 0) {
       return res.status(401).json({ success: false, message: "Geçersiz Kullanıcı" });
     }
 
-    // 2. Toplam ilan sayısını çek (Veritabanındaki user_id: 37 kayıtların için)
+    // 2. Toplam ilan sayısını çek
     const totalResult = await query('SELECT COUNT(*) AS total FROM waste WHERE user_id = $1', [userId]);
     const itemsShared = parseInt(totalResult.rows[0]?.total || 0, 10);
 
-    // 3. Aylık grafik verisi (Veritabanındaki record_date ile tam uyumlu)
+    // 3. Environmental score'dan toplam puanı çek
+    const scoreResult = await query('SELECT COALESCE(SUM(total_score), 0) as total_score FROM environmental_scores WHERE user_id = $1', [userId]);
+    const totalScore = parseInt(scoreResult.rows[0]?.total_score || 0, 10);
+
+    // 4. Toplanan atık sayısı (connections = completed reservations where user is owner)
+    const connectionsResult = await query(`
+      SELECT COUNT(*) as connections 
+      FROM reservations r 
+      JOIN waste w ON r.waste_id = w.waste_id 
+      WHERE w.user_id = $1 AND r.status = 'collected'
+    `, [userId]);
+    const connections = parseInt(connectionsResult.rows[0]?.connections || 0, 10);
+
+    // 5. Aylık grafik verisi
     const monthlyRows = await query(`
-      SELECT TO_CHAR(record_date, 'Mon') as month_label, COUNT(*) as count
+      SELECT TO_CHAR(record_date, 'Mon') as month_label, SUM(amount) as total_amount
       FROM waste 
-      WHERE user_id = $1 
+      WHERE user_id = $1 AND status = 'collected'
       GROUP BY month_label, date_trunc('month', record_date)
       ORDER BY date_trunc('month', record_date) ASC
       LIMIT 6
@@ -545,15 +558,19 @@ const getImpactStats = async (req, res) => {
 
     const monthlyImpact = (monthlyRows.rows || []).map(row => ({
       month: row.month_label,
-      amount: parseInt(row.count, 10)
+      value: parseFloat(row.total_amount) || 0
     }));
 
-    // 4. Frontend'in beklediği temiz veri formatı
+    // 6. Frontend'in beklediği format
     res.json({
-      itemsShared: itemsShared,
-      co2Saved: parseFloat((itemsShared * 2.5).toFixed(1)),
-      communityConnections: Math.floor(itemsShared * 0.5),
-      monthlyImpact: monthlyImpact.length > 0 ? monthlyImpact : [{month: 'Oca', amount: itemsShared}]
+      success: true,
+      data: {
+        itemsShared: itemsShared,
+        co2Saved: (totalScore * 0.5).toFixed(1),  // Her puan 0.5kg CO2 tasarrufu
+        connections: connections,
+        totalScore: totalScore,
+        monthlyImpact: monthlyImpact
+      }
     });
 
   } catch (error) {

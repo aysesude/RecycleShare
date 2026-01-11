@@ -168,4 +168,13 @@ export const adminAPI = {
   }
 }
 
+// Waste API calls
+export const wasteAPI = {
+  getImpactStats: async () => {
+    const response = await api.get('/waste/stats')
+    return response.data
+  }
+}
+
 export default api
+

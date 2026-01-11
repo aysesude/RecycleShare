@@ -10,11 +10,11 @@ const Community = () => {
   const { user } = useAuth()
 
   const [leaderboard, setLeaderboard] = useState([])
-  const [toCollect, setToCollect] = useState([]) 
-  const [myResv, setMyResv] = useState([])      
+  const [toCollect, setToCollect] = useState([])
+  const [myResv, setMyResv] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('collector')
-  
+
   const [selectedItem, setSelectedItem] = useState(null)
   const [editAmount, setEditAmount] = useState('')
 
@@ -29,27 +29,27 @@ const Community = () => {
         api.get('/reports/top-contributors'),
         api.get('/reservations/my/collector'),
         api.get('/reservations/my/owner'),
-        api.get('/waste') 
+        api.get('/waste')
       ])
-      
+
       const allWaste = allWasteRes.data?.data || []
-      
+
       const enhance = (resList, type) => resList.map(res => {
         const wasteInfo = allWaste.find(w => String(w.waste_id) === String(res.waste_id)) || {}
-        
+
         return {
           ...res,
           display_name: res.type_name || wasteInfo.type_name || 'Recyclable Item',
           display_desc: res.waste_description || wasteInfo.description || 'No description provided',
           display_amount: res.amount || wasteInfo.amount || '0',
           display_unit: res.official_unit || wasteInfo.official_unit || 'kg',
-          
+
           city: res.city || wasteInfo.city || 'N/A',
           district: res.district || wasteInfo.district || '',
           neighborhood: res.neighborhood || wasteInfo.neighborhood || '',
           street: res.street || wasteInfo.street || '',
           address_details: res.address_details || wasteInfo.address_details || '',
-          
+
           contact_label: type === 'collector' ? "Waste Owner" : "Collector Info",
           contact_name: type === 'collector' ? (res.owner_name || 'Anonymous User') : (res.collector_name || 'Assigned Collector'),
           contact_phone: type === 'collector' ? (res.owner_phone || 'N/A') : (res.collector_phone || 'N/A')
@@ -79,7 +79,7 @@ const Community = () => {
 
       toast.success('Waste collected successfully! Points awarded.');
       setSelectedItem(null);
-      fetchInitialData(); 
+      fetchInitialData();
     } catch (err) {
       console.error("Update Error:", err.response?.data || err.message);
       toast.error(err.response?.data?.message || 'Error updating collection');
@@ -130,17 +130,17 @@ const Community = () => {
 
           {/* Leaderboard */}
           <div className="lg:col-span-4">
-             <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-6 sticky top-8">
-                <h3 className="text-xs mb-4 flex items-center gap-2 text-emerald-600 uppercase"><FiUsers /> Top Contributors</h3>
-                <div className="space-y-3">
-                  {leaderboard.map((u, i) => (
-                    <div key={i} className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition-colors">
-                      <span className="text-slate-600 font-bold text-sm">{u.first_name}</span>
-                      <span className="text-emerald-600 font-black text-sm">{u.total_waste_count} PTS</span>
-                    </div>
-                  ))}
-                </div>
-             </div>
+            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-6 sticky top-8">
+              <h3 className="text-xs mb-4 flex items-center gap-2 text-emerald-600 uppercase"><FiUsers /> Top Contributors</h3>
+              <div className="space-y-3">
+                {leaderboard.map((u, i) => (
+                  <div key={i} className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                    <span className="text-slate-600 font-bold text-sm">{u.full_name}</span>
+                    <span className="text-emerald-600 font-black text-sm">{u.waste_count} PTS</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -148,8 +148,8 @@ const Community = () => {
         {selectedItem && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
             <div className="bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl relative animate-in fade-in zoom-in duration-150">
-              <button onClick={() => setSelectedItem(null)} className="absolute top-8 right-8 text-slate-400 hover:text-slate-600 transition-colors"><FiX size={24}/></button>
-              
+              <button onClick={() => setSelectedItem(null)} className="absolute top-8 right-8 text-slate-400 hover:text-slate-600 transition-colors"><FiX size={24} /></button>
+
               <div className="mb-6">
                 <h3 className="text-3xl font-black text-slate-800 uppercase leading-none mb-2">{selectedItem.display_name}</h3>
                 <p className="text-emerald-600 font-black text-xl">{selectedItem.display_amount} {selectedItem.display_unit}</p>
@@ -169,7 +169,7 @@ const Community = () => {
                   <div className="text-sm">
                     <p className="font-black text-blue-400 uppercase text-[10px] tracking-widest mb-1">Pickup Time</p>
                     <p className="text-blue-700 font-bold uppercase">
-                        {new Date(selectedItem.pickup_datetime).toLocaleDateString('en-GB')} at {new Date(selectedItem.pickup_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      {new Date(selectedItem.pickup_datetime).toLocaleDateString('en-GB')} at {new Date(selectedItem.pickup_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                 </div>
@@ -193,7 +193,7 @@ const Community = () => {
                     <p className="font-black text-orange-400 uppercase text-[10px] tracking-widest mb-1">{selectedItem.contact_label}</p>
                     <p className="text-orange-900 font-bold mb-1">{selectedItem.contact_name}</p>
                     <p className="text-orange-700 font-black text-lg flex items-center gap-2">
-                        <FiPhone size={16}/> {selectedItem.contact_phone}
+                      <FiPhone size={16} /> {selectedItem.contact_phone}
                     </p>
                   </div>
                 </div>
