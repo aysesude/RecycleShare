@@ -71,10 +71,10 @@ const updateUserRole = async (req, res) => {
     const { id } = req.params;
     const { role } = req.body;
 
-    if (!role || !['admin', 'user'].includes(role)) {
+    if (!role || !['admin', 'resident'].includes(role)) {
       return res.status(400).json({
         success: false,
-        message: "Geçersiz rol. Geçerli değerler: 'admin', 'user'"
+        message: "Geçersiz rol. Geçerli değerler: 'admin', 'resident'"
       });
     }
 
@@ -466,7 +466,7 @@ const getDashboard = async (req, res) => {
       SELECT 
         COUNT(*) as total_users,
         COUNT(CASE WHEN role = 'admin' THEN 1 END) as admin_count,
-        COUNT(CASE WHEN role = 'user' THEN 1 END) as user_count,
+        COUNT(CASE WHEN role = 'resident' THEN 1 END) as resident_count,
         COUNT(CASE WHEN is_active = true THEN 1 END) as active_users
       FROM users
     `);
@@ -764,6 +764,133 @@ const getDatabaseSchema = async (req, res) => {
   }
 };
 
+// ============================================
+// ÖDEV GEREKSİNİMİ: UNION / INTERSECT / EXCEPT SORGUSU
+// Hem atık paylaşan HEM de toplayan kullanıcılar
+// ============================================
+const getActiveContributors = async (req, res) => {
+  try {
+    // INTERSECT: Hem atık paylaşan hem de toplayan kullanıcılar
+    const intersectResult = await query(`
+      SELECT user_id, first_name, last_name, email, 'Paylaşımcı & Toplayıcı' as contributor_type
+      FROM users u
+      WHERE EXISTS (SELECT 1 FROM waste w WHERE w.user_id = u.user_id)
+      INTERSECT
+      SELECT user_id, first_name, last_name, email, 'Paylaşımcı & Toplayıcı' as contributor_type
+      FROM users u
+      WHERE EXISTS (SELECT 1 FROM reservations r WHERE r.collector_id = u.user_id)
+    `);
+
+    // UNION: Atık paylaşan VEYA toplayan tüm aktif kullanıcılar
+    const unionResult = await query(`
+      SELECT user_id, first_name, last_name, 'Paylaşımcı' as activity_type
+      FROM users u
+      WHERE EXISTS (SELECT 1 FROM waste w WHERE w.user_id = u.user_id)
+      UNION
+      SELECT user_id, first_name, last_name, 'Toplayıcı' as activity_type
+      FROM users u
+      WHERE EXISTS (SELECT 1 FROM reservations r WHERE r.collector_id = u.user_id)
+      ORDER BY first_name
+    `);
+
+    // EXCEPT: Hiç rezervasyon yapmamış kullanıcılar
+    const exceptResult = await query(`
+      SELECT user_id, first_name, last_name, email
+      FROM users
+      EXCEPT
+      SELECT DISTINCT u.user_id, u.first_name, u.last_name, u.email
+      FROM users u
+      JOIN reservations r ON u.user_id = r.collector_id
+    `);
+
+    res.json({
+      success: true,
+      data: {
+        intersect: {
+          description: 'Hem paylaşan hem toplayan kullanıcılar (INTERSECT)',
+          count: intersectResult.rows.length,
+          users: intersectResult.rows
+        },
+        union: {
+          description: 'Tüm aktif kullanıcılar - paylaşan veya toplayan (UNION)',
+          count: unionResult.rows.length,
+          users: unionResult.rows
+        },
+        except: {
+          description: 'Hiç rezervasyon yapmamış kullanıcılar (EXCEPT)',
+          count: exceptResult.rows.length,
+          users: exceptResult.rows
+        }
+      },
+      sql_info: {
+        intersect_query: 'SELECT ... WHERE EXISTS(waste) INTERSECT SELECT ... WHERE EXISTS(reservations)',
+        union_query: 'SELECT ... paylaşımcılar UNION SELECT ... toplayıcılar',
+        except_query: 'SELECT all users EXCEPT SELECT users with reservations'
+      }
+    });
+
+  } catch (error) {
+    console.error('getActiveContributors error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Aktif katılımcılar alınırken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
+// ============================================
+// ÖDEV GEREKSİNİMİ: AGGREGATE + HAVING SORGUSU
+// En az N atık paylaşmış kullanıcılar
+// ============================================
+const getTopContributors = async (req, res) => {
+  try {
+    const { minWaste = 1 } = req.query;
+
+    // Aggregate fonksiyonlar (COUNT, SUM) + HAVING kullanımı
+    const result = await query(`
+      SELECT 
+        u.user_id,
+        u.first_name || ' ' || u.last_name AS full_name,
+        u.email,
+        u.city,
+        COUNT(w.waste_id) AS waste_count,
+        COALESCE(SUM(w.amount), 0) AS total_amount,
+        COUNT(CASE WHEN w.status = 'collected' THEN 1 END) AS collected_count,
+        COALESCE(SUM(CASE WHEN w.status = 'collected' THEN w.amount * wt.recycle_score ELSE 0 END), 0)::INTEGER AS total_score
+      FROM users u
+      LEFT JOIN waste w ON u.user_id = w.user_id
+      LEFT JOIN waste_types wt ON w.type_id = wt.type_id
+      GROUP BY u.user_id, u.first_name, u.last_name, u.email, u.city
+      HAVING COUNT(w.waste_id) >= $1
+      ORDER BY waste_count DESC, total_score DESC
+    `, [parseInt(minWaste)]);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      count: result.rows.length,
+      filter: {
+        minWaste: parseInt(minWaste),
+        description: `En az ${minWaste} atık paylaşmış kullanıcılar`
+      },
+      sql_info: {
+        aggregate_functions: ['COUNT(w.waste_id)', 'SUM(w.amount)', 'SUM(w.amount * wt.recycle_score)'],
+        having_clause: `HAVING COUNT(w.waste_id) >= ${minWaste}`,
+        description: 'Aggregate fonksiyonlar ve HAVING ifadesi kullanıldı'
+      }
+    });
+
+  } catch (error) {
+    console.error('getTopContributors error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Top paylaşımcılar alınırken hata oluştu',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   updateUserRole,
@@ -778,5 +905,7 @@ module.exports = {
   getTableList,
   getTableSchema,
   getTableData,
-  getDatabaseSchema
+  getDatabaseSchema,
+  getActiveContributors,
+  getTopContributors
 };

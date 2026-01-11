@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS users (
     google_id VARCHAR(255) UNIQUE,
     profile_picture VARCHAR(500),
     phone VARCHAR(20) UNIQUE NOT NULL,
-    role VARCHAR(20) NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+    role VARCHAR(20) NOT NULL DEFAULT 'resident' CHECK (role IN ('admin', 'resident')),
     city VARCHAR(100),
     district VARCHAR(100),
     neighborhood VARCHAR(100),

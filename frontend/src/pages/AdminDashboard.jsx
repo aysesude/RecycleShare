@@ -14,6 +14,8 @@ const AdminDashboard = () => {
     const [dashboardData, setDashboardData] = useState(null)
     const [users, setUsers] = useState([])
     const [triggerLogs, setTriggerLogs] = useState([])
+    const [sqlData, setSqlData] = useState(null)
+    const [minWaste, setMinWaste] = useState(1)
 
     useEffect(() => {
         if (activeTab === 'dashboard') {
@@ -22,6 +24,8 @@ const AdminDashboard = () => {
             loadUsers()
         } else if (activeTab === 'triggers') {
             loadTriggerLogs()
+        } else if (activeTab === 'sql') {
+            loadSqlData()
         }
     }, [activeTab])
 
@@ -67,6 +71,23 @@ const AdminDashboard = () => {
         }
     }
 
+    const loadSqlData = async () => {
+        setLoading(true)
+        try {
+            const [contributors, topContrib] = await Promise.all([
+                adminAPI.getActiveContributors(),
+                adminAPI.getTopContributors(minWaste)
+            ])
+            if (contributors.success && topContrib.success) {
+                setSqlData({ contributors: contributors.data, topContributors: topContrib })
+            }
+        } catch (error) {
+            toast.error('SQL verileri yüklenemedi')
+        } finally {
+            setLoading(false)
+        }
+    }
+
     const handleRoleChange = async (userId, newRole) => {
         try {
             const response = await adminAPI.updateUserRole(userId, newRole)
@@ -102,7 +123,8 @@ const AdminDashboard = () => {
         { id: 'dashboard', label: '📊 Dashboard', icon: FiActivity },
         { id: 'users', label: '👥 Kullanıcılar', icon: FiUsers },
         { id: 'database', label: '🗄️ Veritabanı', icon: FiDatabase },
-        { id: 'triggers', label: '⚡ Trigger Logs', icon: FiRefreshCw }
+        { id: 'triggers', label: '⚡ Trigger Logs', icon: FiRefreshCw },
+        { id: 'sql', label: '🔍 SQL Sorguları', icon: FiDatabase }
     ]
 
     return (
@@ -181,7 +203,7 @@ const AdminDashboard = () => {
                                     <StatCard
                                         title="Toplam Kullanıcı"
                                         value={dashboardData.users?.total_users || 0}
-                                        subtitle={`${dashboardData.users?.admin_count || 0} admin, ${dashboardData.users?.user_count || 0} user`}
+                                        subtitle={`${dashboardData.users?.admin_count || 0} admin, ${dashboardData.users?.resident_count || 0} resident`}
                                         gradient="from-blue-500 to-cyan-500"
                                         icon="👥"
                                     />
@@ -262,7 +284,7 @@ const AdminDashboard = () => {
                                                             onChange={(e) => handleRoleChange(u.user_id, e.target.value)}
                                                             className="bg-white/10 text-white text-sm rounded-lg px-2 py-1 border border-white/20"
                                                         >
-                                                            <option value="user" className="bg-slate-800">User</option>
+                                                            <option value="resident" className="bg-slate-800">Resident</option>
                                                             <option value="admin" className="bg-slate-800">Admin</option>
                                                         </select>
                                                     </td>
@@ -325,6 +347,112 @@ const AdminDashboard = () => {
                                             ))}
                                         </tbody>
                                     </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SQL Queries Tab */}
+                        {activeTab === 'sql' && sqlData && (
+                            <div className="space-y-6">
+                                {/* INTERSECT Section */}
+                                <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
+                                    <div className="p-4 border-b border-white/10 bg-yellow-500/10">
+                                        <h3 className="text-lg font-semibold text-yellow-300">🔀 INTERSECT Sorgusu</h3>
+                                        <p className="text-white/60 text-sm mt-1">{sqlData.contributors?.intersect?.description}</p>
+                                        <code className="text-xs text-yellow-200/70 block mt-2 bg-black/30 p-2 rounded">SELECT ... INTERSECT SELECT ...</code>
+                                    </div>
+                                    <div className="p-4">
+                                        {sqlData.contributors?.intersect?.users?.length > 0 ? (
+                                            <div className="grid gap-2">
+                                                {sqlData.contributors.intersect.users.map((u, i) => (
+                                                    <div key={i} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
+                                                        <span className="text-white">{u.first_name} {u.last_name}</span>
+                                                        <span className="text-white/50 text-sm">{u.email}</span>
+                                                        <span className="ml-auto px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded text-xs">{u.contributor_type}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-white/50">Hem paylaşan hem toplayan kullanıcı bulunamadı</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* UNION Section */}
+                                <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
+                                    <div className="p-4 border-b border-white/10 bg-blue-500/10">
+                                        <h3 className="text-lg font-semibold text-blue-300">🔗 UNION Sorgusu</h3>
+                                        <p className="text-white/60 text-sm mt-1">{sqlData.contributors?.union?.description}</p>
+                                        <code className="text-xs text-blue-200/70 block mt-2 bg-black/30 p-2 rounded">SELECT ... UNION SELECT ...</code>
+                                    </div>
+                                    <div className="p-4 max-h-60 overflow-y-auto">
+                                        <div className="grid gap-1">
+                                            {sqlData.contributors?.union?.users?.map((u, i) => (
+                                                <div key={i} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded">
+                                                    <span className="text-white text-sm">{u.first_name} {u.last_name}</span>
+                                                    <span className={`ml-auto px-2 py-0.5 rounded text-xs ${u.activity_type === 'Paylaşımcı' ? 'bg-green-500/20 text-green-300' : 'bg-purple-500/20 text-purple-300'}`}>{u.activity_type}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* EXCEPT Section */}
+                                <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
+                                    <div className="p-4 border-b border-white/10 bg-red-500/10">
+                                        <h3 className="text-lg font-semibold text-red-300">➖ EXCEPT Sorgusu</h3>
+                                        <p className="text-white/60 text-sm mt-1">{sqlData.contributors?.except?.description}</p>
+                                        <code className="text-xs text-red-200/70 block mt-2 bg-black/30 p-2 rounded">SELECT ... EXCEPT SELECT ...</code>
+                                    </div>
+                                    <div className="p-4 text-white/70 text-sm">
+                                        Hiç rezervasyon yapmamış kullanıcı sayısı: <span className="text-red-300 font-bold">{sqlData.contributors?.except?.count || 0}</span>
+                                    </div>
+                                </div>
+
+                                {/* HAVING Section */}
+                                <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
+                                    <div className="p-4 border-b border-white/10 bg-emerald-500/10">
+                                        <h3 className="text-lg font-semibold text-emerald-300">📊 Aggregate + HAVING Sorgusu</h3>
+                                        <p className="text-white/60 text-sm mt-1">{sqlData.topContributors?.filter?.description}</p>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span className="text-white/70 text-sm">Min atık sayısı:</span>
+                                            <input
+                                                type="number"
+                                                value={minWaste}
+                                                onChange={(e) => setMinWaste(parseInt(e.target.value) || 1)}
+                                                className="w-16 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                                                min="1"
+                                            />
+                                            <button onClick={loadSqlData} className="px-3 py-1 bg-emerald-500/30 text-emerald-300 rounded text-sm hover:bg-emerald-500/40">Filtrele</button>
+                                        </div>
+                                        <code className="text-xs text-emerald-200/70 block mt-2 bg-black/30 p-2 rounded">HAVING COUNT(w.waste_id) &gt;= {minWaste}</code>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead>
+                                                <tr className="bg-white/5">
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-white/70">Kullanıcı</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-white/70">Şehir</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-white/70">Atık Sayısı</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-white/70">Toplam Miktar</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-white/70">Toplanan</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-white/70">Puan</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5">
+                                                {sqlData.topContributors?.data?.map((u, i) => (
+                                                    <tr key={i} className="hover:bg-white/5">
+                                                        <td className="px-4 py-3 text-sm text-white">{u.full_name}</td>
+                                                        <td className="px-4 py-3 text-sm text-white/70">{u.city || '-'}</td>
+                                                        <td className="px-4 py-3 text-sm text-emerald-300 font-bold">{u.waste_count}</td>
+                                                        <td className="px-4 py-3 text-sm text-white/70">{parseFloat(u.total_amount).toFixed(1)}</td>
+                                                        <td className="px-4 py-3 text-sm text-white/70">{u.collected_count}</td>
+                                                        <td className="px-4 py-3 text-sm text-yellow-300">{u.total_score}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         )}

@@ -154,6 +154,17 @@ export const adminAPI = {
   getDatabaseSchema: async () => {
     const response = await api.get('/admin/database/schema')
     return response.data
+  },
+
+  // Ödev Gereksinimleri - SQL Sorguları
+  getActiveContributors: async () => {
+    const response = await api.get('/admin/active-contributors')
+    return response.data
+  },
+
+  getTopContributors: async (minWaste = 1) => {
+    const response = await api.get('/admin/top-contributors', { params: { minWaste } })
+    return response.data
   }
 }
 

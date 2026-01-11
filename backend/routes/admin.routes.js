@@ -36,4 +36,10 @@ router.get('/database/tables/:name/schema', adminController.getTableSchema);
 router.get('/database/tables/:name/data', adminController.getTableData);
 router.get('/database/schema', adminController.getDatabaseSchema);
 
+// Ödev Gereksinimleri - SQL Sorguları
+// UNION / INTERSECT / EXCEPT sorguları
+router.get('/active-contributors', adminController.getActiveContributors);
+// Aggregate + HAVING sorgusu
+router.get('/top-contributors', adminController.getTopContributors);
+
 module.exports = router;
