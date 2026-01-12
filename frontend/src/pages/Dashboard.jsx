@@ -2,10 +2,36 @@ import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { FiLogOut, FiUser, FiMail, FiPhone, FiCalendar, FiShield } from 'react-icons/fi'
+import React, { useState, useEffect } from "react";
+import { wasteAPI } from '../services/api';
 
 const Dashboard = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+const [stats, setStats] = useState({
+    itemsShared: 0,
+    co2Saved: "0.0",
+    communityConnections: 0,
+  });
+    useEffect(() => {
+      const fetchImpactData = async () => {
+        try {
+          const response = await wasteAPI.getImpactStats();
+  
+          if (response.success && response.data) {
+            const apiData = response.data;
+            setStats({
+              itemsShared: apiData.itemsShared || 0,
+              co2Saved: apiData.co2Saved || "0.0",
+              communityConnections: apiData.connections || 0,
+            });
+          }
+        } catch (error) {
+          console.error("Veri çekme hatası:", error);
+        }
+      };
+      fetchImpactData();
+    }, []);
 
   const handleLogout = () => {
     logout()
@@ -193,15 +219,15 @@ const Dashboard = () => {
                 <h3 className="font-semibold mb-3">🌍 Your Eco Impact</h3>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <p className="text-2xl font-bold">0</p>
+                    <p className="text-2xl font-bold">{stats.itemsShared}</p>
                     <p className="text-xs text-emerald-100">Items Shared</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">0 kg</p>
+                    <p className="text-2xl font-bold">{stats.co2Saved} kg</p>
                     <p className="text-xs text-emerald-100">CO₂ Saved</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">0</p>
+                    <p className="text-2xl font-bold">{stats.communityConnections}</p>
                     <p className="text-xs text-emerald-100">Connections</p>
                   </div>
                 </div>
