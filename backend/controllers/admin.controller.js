@@ -655,7 +655,7 @@ const getTableData = async (req, res) => {
     const offset = (page - 1) * limit;
 
     // Güvenlik: Sadece izin verilen tablolar
-    const allowedTables = ['users', 'waste', 'waste_types', 'reservations', 'environmental_scores', 'trigger_logs', 'pending_registrations'];
+    const allowedTables = ['users', 'waste', 'waste_types', 'reservations', 'environmental_scores', 'trigger_logs'];
     if (!allowedTables.includes(name)) {
       return res.status(400).json({
         success: false,

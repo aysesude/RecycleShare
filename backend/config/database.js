@@ -1,18 +1,18 @@
 const { Pool } = require('pg');
 
 // Railway provides DATABASE_URL, local dev uses individual vars
-const pool = process.env.DATABASE_URL 
+const pool = process.env.DATABASE_URL
   ? new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false }
-    })
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  })
   : new Pool({
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432,
-      database: process.env.DB_NAME || 'recycleshare',
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-    });
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
+    database: process.env.DB_NAME || 'recycleshare',
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+  });
 
 // Test connection
 pool.on('connect', () => {
@@ -26,21 +26,6 @@ pool.on('error', (err) => {
 
 // Initialize database with schema
 const initializeDatabase = async () => {
-  // Create pending_registrations table (for unverified users)
-  const createPendingTable = `
-    CREATE TABLE IF NOT EXISTS pending_registrations (
-      id SERIAL PRIMARY KEY,
-      first_name VARCHAR(50) NOT NULL,
-      last_name VARCHAR(50) NOT NULL,
-      email VARCHAR(100) UNIQUE NOT NULL,
-      password VARCHAR(255) NOT NULL,
-      phone VARCHAR(20) UNIQUE NOT NULL,
-      verification_code VARCHAR(6) NOT NULL,
-      verification_code_expires TIMESTAMP NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `;
-
   const createUsersTable = `
     CREATE TABLE IF NOT EXISTS users (
       user_id SERIAL PRIMARY KEY,
@@ -61,7 +46,6 @@ const initializeDatabase = async () => {
   `;
 
   try {
-    await pool.query(createPendingTable);
     await pool.query(createUsersTable);
     console.log('✅ Database schema initialized');
   } catch (error) {
