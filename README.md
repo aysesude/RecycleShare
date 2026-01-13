@@ -350,4 +350,4 @@ git push origin feature/your-feature
 
 ---
 
-💚 **RecycleShare Ekibi** tarafından geliştirildi
+💚 **RecycleShare Ekibi** tarafından geliştirildi | v1.0 - 2026
