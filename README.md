@@ -1,8 +1,8 @@
-# 🌿 RecycleShare - Auth Module
+# 🌿 RecycleShare
 
-A **Hybrid Authentication System** built with Node.js, PostgreSQL, and React featuring Google OAuth and Email OTP verification.
+Sürdürülebilir bir gelecek için **atık paylaşım ve toplama platformu**. Node.js, PostgreSQL, ve React ile geliştirilmiş tam kapsamlı bir web uygulaması.
 
-## 🌐 Live Demo
+## 🌐 Canlı Demo
 
 - **🌍 Frontend**: https://recycle-share.vercel.app
 - **🔗 API**: https://recycleshare.onrender.com
@@ -11,66 +11,86 @@ A **Hybrid Authentication System** built with Node.js, PostgreSQL, and React fea
 
 ---
 
-## 🎯 Features
+## 🎯 Özellikler
 
-### Authentication Flows
-- **Standard Registration**: Email + Password with OTP Email Verification
-- **Google OAuth**: Sign in with Google (requires phone number for new users)
-- **Secure Login**: JWT-based session management
+### 🔐 Kimlik Doğrulama
+- **Standart Kayıt**: Email + Şifre ile OTP doğrulama
+- **Google OAuth**: Google ile giriş (yeni kullanıcılar için telefon zorunlu)
+- **JWT Tabanlı Oturum**: Güvenli token yönetimi
+- Şifre hashleme (bcrypt, 12 salt rounds)
+- 6 haneli OTP email doğrulama (10 dakika geçerlilik)
 
-### Security Features
-- 🔐 Password hashing with bcrypt (12 salt rounds)
-- 📧 6-digit OTP email verification (10-minute expiry)
-- 🎫 JWT tokens with configurable expiration
-- ✅ Input validation with express-validator
-- 🛡️ Protected routes with middleware
+### ♻️ Atık Yönetimi
+- **Atık Paylaşma**: Kullanıcılar geri dönüştürülebilir atıklarını paylaşabilir
+- **Atık Listeleme**: Bölgedeki mevcut atıkları görüntüleme
+- **Atık Türleri**: Plastik, cam, kağıt, metal, elektronik vb.
+- **Durum Takibi**: Beklemede, Rezerve, Toplandı
 
-### Design
+### 📅 Rezervasyon Sistemi
+- **Atık Rezervasyonu**: Başkalarının paylaştığı atıkları rezerve etme
+- **Rezervasyon Takibi**: Aktif ve geçmiş rezervasyonlar
+- **Toplama Onayı**: Atık toplandığında durum güncelleme
+- **Otomatik Trigger'lar**: Environmental score hesaplama
+
+### 👥 Topluluk & İstatistikler
+- **Çevresel Puan**: Kullanıcıların geri dönüşüm skorları
+- **Topluluk Sıralaması**: En aktif katılımcılar
+- **Aylık İlerleme**: Impact tracking ve raporlar
+- **Admin Dashboard**: Tüm verilerin yönetimi
+
+### 🗄️ Admin Panel
+- **Kullanıcı Yönetimi**: CRUD işlemleri, rol değiştirme
+- **Atık Türü Yönetimi**: Yeni tür ekleme, düzenleme
+- **Trigger Logları**: Veritabanı olaylarını izleme
+- **Veritabanı Gezgini**: Tablolar ve ER diyagramı
+- **Raporlar**: UNION/INTERSECT/EXCEPT sorguları
+
+### 🎨 Tasarım
 - 🌿 **Eco-Minimalist** UI/UX
-- 📱 Fully responsive (Mobile-first)
-- 🎨 Custom DaisyUI theme with emerald/green accents
+- 📱 Tam duyarlı (Mobile-first)
+- 🎨 Modern glassmorphism & gradients
+- ✨ Mikro animasyonlar
 
 ---
 
-## 🚀 Quick Start (Local Development)
+## 🚀 Hızlı Başlangıç (Yerel Geliştirme)
 
-### Prerequisites
+### Gereksinimler
 - Node.js 18+
-- npm or yarn
+- npm veya yarn
 - Git
 
-### 1. Clone the Repository
+### 1. Repoyu Klonla
 
 ```bash
 git clone git@github.com:aysesude/RecycleShare.git
 cd RecycleShare
-git checkout railway-deploy
 ```
 
-### 2. Backend Setup
+### 2. Backend Kurulumu
 
 ```bash
 cd backend
 npm install
 ```
 
-Create `.env` file:
+`.env` dosyası oluştur:
 
 ```env
 PORT=5001
 NODE_ENV=development
 
-# Cloud Database (Neon) - Get credentials from team lead
+# Database (Neon) - Ekip liderinden al
 DATABASE_URL=postgresql://neondb_owner:PASSWORD@ep-xxx.eu-central-1.aws.neon.tech/neondb?sslmode=require
 
 # JWT
 JWT_SECRET=recycleshare-super-secret-jwt-key-2024
 JWT_EXPIRES_IN=7d
 
-# Google OAuth - Get from team lead
+# Google OAuth - Ekip liderinden al
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 
-# Email (Gmail SMTP) - Get from team lead
+# Email (Gmail SMTP) - Ekip liderinden al
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=recycleshareco@gmail.com
@@ -80,37 +100,37 @@ SMTP_PASSWORD=get-from-team-lead
 FRONTEND_URL=http://localhost:5173
 ```
 
-> ⚠️ **Note**: Ask team lead for `DATABASE_URL`, `GOOGLE_CLIENT_ID`, and `SMTP_PASSWORD`
+> ⚠️ **Not**: `DATABASE_URL`, `GOOGLE_CLIENT_ID`, ve `SMTP_PASSWORD` için ekip liderine danışın
 
-Start backend:
+Backend'i başlat:
 
 ```bash
 npm run dev
 ```
 
-Backend will run at: http://localhost:5001
+Backend çalışacak: http://localhost:5001
 
-### 3. Frontend Setup
+### 3. Frontend Kurulumu
 
 ```bash
 cd ../frontend
 npm install
 ```
 
-Create `.env` file:
+`.env` dosyası oluştur:
 
 ```env
 VITE_API_URL=http://localhost:5001/api
 VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 ```
 
-Start frontend:
+Frontend'i başlat:
 
 ```bash
 npm run dev
 ```
 
-Frontend will run at: http://localhost:5173
+Frontend çalışacak: http://localhost:5173
 
 ---
 
@@ -118,68 +138,120 @@ Frontend will run at: http://localhost:5173
 
 Base URL: `https://recycleshare.onrender.com/api`
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Health check |
-| POST | `/auth/register` | Register with email/password |
-| POST | `/auth/verify-otp` | Verify OTP code |
-| POST | `/auth/resend-otp` | Resend OTP email |
-| POST | `/auth/login` | Login with email/password |
-| POST | `/auth/google` | Google OAuth login |
-| POST | `/auth/google/complete` | Complete Google registration (add phone) |
-| GET | `/auth/me` | Get current user (requires JWT) |
+### Auth Endpoints
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| POST | `/auth/register` | Email/şifre ile kayıt |
+| POST | `/auth/verify-otp` | OTP doğrulama |
+| POST | `/auth/resend-otp` | OTP tekrar gönder |
+| POST | `/auth/login` | Giriş yap |
+| POST | `/auth/google` | Google OAuth |
+| POST | `/auth/google/complete` | Google kayıt tamamla |
+| GET | `/auth/me` | Mevcut kullanıcı bilgisi |
 
-📚 Full API documentation: https://recycleshare.onrender.com/api/docs/
+### Waste Endpoints
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| GET | `/waste` | Tüm atıkları listele |
+| GET | `/waste/my` | Kullanıcının atıkları |
+| POST | `/waste` | Yeni atık ekle |
+| PUT | `/waste/:id` | Atık güncelle |
+| DELETE | `/waste/:id` | Atık sil |
+
+### Reservation Endpoints
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| GET | `/reservations` | Tüm rezervasyonlar |
+| GET | `/reservations/my` | Kullanıcının rezervasyonları |
+| POST | `/reservations` | Yeni rezervasyon |
+| PUT | `/reservations/:id/collect` | Toplama onayla |
+| DELETE | `/reservations/:id` | Rezervasyon iptal |
+
+### Report Endpoints
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| GET | `/reports/impact` | Çevresel etki raporu |
+| GET | `/reports/community` | Topluluk istatistikleri |
+
+### Admin Endpoints
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| GET | `/admin/dashboard` | Admin dashboard |
+| GET | `/admin/users` | Kullanıcı listesi |
+| PUT | `/admin/users/:id/role` | Rol değiştir |
+| GET | `/admin/waste-types` | Atık türleri |
+| GET | `/admin/trigger-logs` | Trigger logları |
+| GET | `/admin/database/tables` | Tablo listesi |
+| GET | `/admin/database/schema` | ER şeması |
+
+📚 Tam API dökümantasyonu: https://recycleshare.onrender.com/api/docs/
 
 ---
 
-## 🗄️ Database Schema
+## 🗄️ Veritabanı Şeması
 
-```sql
-CREATE TABLE users (
-    user_id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255),
-    full_name VARCHAR(255) NOT NULL,
-    phone VARCHAR(20),
-    is_verified BOOLEAN DEFAULT FALSE,
-    auth_provider VARCHAR(20) DEFAULT 'local',
-    google_id VARCHAR(255),
-    otp_code VARCHAR(6),
-    otp_expires_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+### Tablolar
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         RecycleShare DB                             │
+├─────────────────────────────────────────────────────────────────────┤
+│  users              - Kullanıcılar                                  │
+│  waste              - Atık ilanları                                 │
+│  waste_types        - Atık türleri (plastik, cam, vb.)              │
+│  reservations       - Rezervasyonlar                                │
+│  environmental_scores - Kullanıcı çevresel puanları                 │
+│  trigger_logs       - Trigger aktivite logları                      │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
+### İlişkiler
+- `waste.user_id` → `users.user_id` (CASCADE)
+- `waste.type_id` → `waste_types.type_id` (RESTRICT)
+- `reservations.waste_id` → `waste.waste_id` (CASCADE)
+- `reservations.collector_id` → `users.user_id` (CASCADE)
+- `environmental_scores.user_id` → `users.user_id` (CASCADE)
+
+### Triggers
+- **trg_update_waste_status**: Rezervasyon oluşturulduğunda atık durumunu günceller
+- **trg_calculate_score**: Atık toplandığında çevresel puan hesaplar
+- **trg_log_activities**: Tüm kritik işlemleri loglar
+
 ---
 
-## 📁 Project Structure
+## 📁 Proje Yapısı
 
 ```
 RecycleShare/
 ├── backend/
 │   ├── config/
-│   │   └── database.js         # PostgreSQL connection & schema
+│   │   └── database.js          # PostgreSQL bağlantısı
 │   ├── controllers/
-│   │   └── auth.controller.js  # Auth logic
+│   │   ├── auth.controller.js   # Kimlik doğrulama
+│   │   ├── waste.controller.js  # Atık yönetimi
+│   │   ├── reservation.controller.js  # Rezervasyonlar
+│   │   ├── report.controller.js # Raporlar
+│   │   └── admin.controller.js  # Admin işlemleri
 │   ├── middleware/
-│   │   └── auth.middleware.js  # JWT verification
+│   │   └── auth.middleware.js   # JWT doğrulama
 │   ├── routes/
-│   │   └── auth.routes.js      # API endpoints
+│   │   ├── auth.routes.js
+│   │   ├── waste.routes.js
+│   │   ├── reservation.routes.js
+│   │   ├── report.routes.js
+│   │   └── admin.routes.js
 │   ├── utils/
-│   │   ├── email.utils.js      # OTP email templates
-│   │   └── jwt.utils.js        # Token generation
-│   ├── validators/
-│   │   └── auth.validator.js   # Input validation
-│   ├── swagger.json            # API documentation
-│   ├── server.js               # Express app entry
+│   │   ├── email.utils.js       # OTP email
+│   │   └── jwt.utils.js         # Token oluşturma
+│   ├── swagger.json             # API dökümantasyonu
+│   ├── server.js                # Express giriş noktası
 │   └── package.json
 │
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── AuthLayout.jsx
+│   │   │   ├── ERDiagram.jsx    # Veritabanı görselleştirme
 │   │   │   └── FormElements.jsx
 │   │   ├── context/
 │   │   │   └── AuthContext.jsx
@@ -188,24 +260,34 @@ RecycleShare/
 │   │   │   ├── Register.jsx
 │   │   │   ├── VerifyOTP.jsx
 │   │   │   ├── GooglePhoneSetup.jsx
-│   │   │   └── Dashboard.jsx
+│   │   │   ├── Dashboard.jsx    # Ana panel
+│   │   │   ├── Listings.jsx     # Atık ilanlarım
+│   │   │   ├── BrowseListings.jsx  # Atık keşfet
+│   │   │   ├── Community.jsx    # Topluluk
+│   │   │   ├── Impact.jsx       # Çevresel etki
+│   │   │   ├── AdminDashboard.jsx  # Admin panel
+│   │   │   └── DatabaseExplorer.jsx  # DB gezgini
 │   │   ├── services/
-│   │   │   └── api.js
+│   │   │   └── api.js           # API çağrıları
 │   │   ├── App.jsx
 │   │   └── main.jsx
 │   └── package.json
+│
+├── database/
+│   └── schema.sql               # Veritabanı şeması
 │
 └── README.md
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Teknoloji Stack
 
 ### Backend
 - **Runtime**: Node.js 18+
 - **Framework**: Express.js
 - **Database**: PostgreSQL (Neon Cloud)
+- **ORM**: pg (node-postgres)
 - **Auth**: JWT, bcrypt, Google OAuth
 - **Email**: Nodemailer (Gmail SMTP)
 - **Docs**: Swagger UI
@@ -213,71 +295,59 @@ RecycleShare/
 ### Frontend
 - **Framework**: React 18 + Vite
 - **Styling**: Tailwind CSS + DaisyUI
-- **HTTP**: Axios
+- **HTTP Client**: Axios
 - **Routing**: React Router v6
 - **Auth**: @react-oauth/google
+- **Charts**: Recharts
+- **Diagrams**: React Flow
 
-### Cloud Services (Free Tier)
+### Cloud Services
 - **Database**: [Neon](https://neon.tech) - Serverless PostgreSQL
 - **Backend**: [Render](https://render.com) - Node.js hosting
-- **Frontend**: [Vercel](https://vercel.com) - React hosting (optional)
+- **Frontend**: [Vercel](https://vercel.com) - React hosting
 
 ---
 
-## 👥 Team Access
+## 🔧 Yaygın Sorunlar
 
-### Getting Access
-1. Request GitHub collaborator access from team lead
-2. Get environment variables (DATABASE_URL, API keys)
-3. Clone and follow Quick Start guide above
-
-### Services
-- **GitHub**: github.com/aysesude/RecycleShare
-- **Neon Dashboard**: console.neon.tech (request invite)
-- **Render Dashboard**: dashboard.render.com (request team invite)
-
----
-
-## 🔧 Common Issues
-
-### Port 5000 conflict (macOS)
-macOS uses port 5000 for Control Center. Use port 5001 instead:
+### Port 5000 çakışması (macOS)
+macOS Control Center port 5000'i kullanır. Bunun yerine 5001 kullanın:
 ```env
 PORT=5001
 ```
 
 ### Google OAuth "Wrong number of segments"
-Make sure frontend sends `id_token` (not `access_token`) from Google login.
+Frontend'in `access_token` değil `id_token` gönderdiğinden emin olun.
 
-### Database connection error
-Check `DATABASE_URL` is correct and Neon project is awake (serverless may sleep).
+### Veritabanı bağlantı hatası
+`DATABASE_URL`'in doğru olduğunu ve Neon projesinin aktif olduğunu kontrol edin.
 
-### CORS errors
-Backend allows localhost:5173, localhost:3000, and all *.onrender.com, *.vercel.app domains.
+### CORS hataları
+Backend localhost:5173, localhost:3000 ve tüm *.onrender.com, *.vercel.app domainlerine izin verir.
 
 ---
 
-## 📝 License
+## 📝 Lisans
 
 MIT
 
 ---
 
-## 🤝 Contributing
+## 🤝 Katkıda Bulunma
 
-1. Create a feature branch from `railway-deploy`
-2. Make your changes
-3. Test locally
-4. Push and create PR
+1. `main` branch'inden feature branch oluşturun
+2. Değişikliklerinizi yapın
+3. Yerel olarak test edin
+4. Push yapıp PR oluşturun
 
 ```bash
-git checkout railway-deploy
-git pull origin railway-deploy
+git checkout main
+git pull origin main
 git checkout -b feature/your-feature
-# ... make changes ...
+# ... değişiklikler ...
 git push origin feature/your-feature
 ```
 
 ---
 
-Made with 💚 by RecycleShare Team
+💚 **RecycleShare Ekibi** tarafından geliştirildi
