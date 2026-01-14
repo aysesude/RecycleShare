@@ -236,14 +236,6 @@ const createReservation = async (req, res) => {
  */
 const updateReservation = async (req, res) => {
   try {
-    // Admin kontrolü
-    if (req.user.role !== 'admin' && req.user.user_id !== res.collector_id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Bu işlem sadece adminler ve rezervasyon sahipleri tarafından yapılabilir'
-      });
-    }
-
     const { id } = req.params;
     const { status, pickup_datetime } = req.body;
 
@@ -263,6 +255,14 @@ const updateReservation = async (req, res) => {
     }
 
     const reservation = resCheck.rows[0];
+
+    // Authorization check - Admin veya rezervasyon sahibi
+    if (req.user.role !== 'admin' && req.user.user_id !== reservation.collector_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bu işlem sadece adminler ve rezervasyon sahipleri tarafından yapılabilir'
+      });
+    }
 
     // Dinamik güncelleme
     const updates = [];
