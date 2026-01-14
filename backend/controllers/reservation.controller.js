@@ -231,16 +231,16 @@ const createReservation = async (req, res) => {
 
 /**
  * PUT /api/reservations/:id
- * Rezervasyon durumunu güncelle - ADMIN ONLY
+ * Rezervasyon durumunu güncelle - ADMIN AND RESERVER ONLY
  * Status: waiting, reserved, cancelled
  */
 const updateReservation = async (req, res) => {
   try {
     // Admin kontrolü
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.user_id !== res.collector_id) {
       return res.status(403).json({
         success: false,
-        message: 'Bu işlem sadece adminler tarafından yapılabilir'
+        message: 'Bu işlem sadece adminler ve rezervasyon sahipleri tarafından yapılabilir'
       });
     }
 
