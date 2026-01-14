@@ -18,6 +18,8 @@ const BrowseListings = () => {
 
   const [reserveModal, setReserveModal] = useState({ open: false, item: null, datetime: '' })
   const [reservations, setReservations] = useState([])
+  const [editingReservation, setEditingReservation] = useState(null)
+  const [editReservationForm, setEditReservationForm] = useState({ pickup_datetime: '' })
 
   useEffect(() => {
     const loadData = async () => {
@@ -28,7 +30,7 @@ const BrowseListings = () => {
           fetchMyReservations()
         ])
       } catch (error) {
-        console.error('Error loading page data:', error)
+        console.error('Sayfa verileri yüklenirken hata oluştu:', error)
         setPageError('Failed to load page. Please check your connection and try again.')
       }
     }
@@ -38,10 +40,10 @@ const BrowseListings = () => {
   const fetchWasteTypes = async () => {
     try {
       const res = await api.get('/waste/types')
-      console.log('Waste types response:', res.data)
+      console.log('Atık türleri cevapı:', res.data)
       setWasteTypes(res.data?.data || res.data || [])
     } catch (err) {
-      console.error('Error fetching waste types:', err)
+      console.error('Atık türleri yüklenirken hata oluştu:', err)
       setWasteTypes([])
     }
   }
@@ -61,13 +63,13 @@ const BrowseListings = () => {
     try {
       setLoading(true)
       const params = buildQuery()
-      console.log('Fetching listings with params:', params)
+      console.log('İlanlar şu parametrelerle çekiliyor:', params)
       const res = await api.get('/waste', { params })
-      console.log('Listings response:', res.data)
+      console.log('İlanlar cevabı:', res.data)
       setListings(res.data?.data || res.data || [])
     } catch (err) {
-      console.error('Error fetching listings:', err)
-      toast.error(err.response?.data?.message || err.message || 'Failed to load listings')
+      console.error('İlanlar yüklenirken hata oluştu:', err)
+      toast.error(err.response?.data?.message || err.message || 'İlanlar yüklenemedi')
       setListings([])
     } finally {
       setLoading(false)
@@ -77,10 +79,10 @@ const BrowseListings = () => {
   const fetchMyReservations = async () => {
     try {
       const res = await api.get('/reservations/my/collector')
-      console.log('Reservations response:', res.data)
+      console.log('Rezervasyonlar cevabı:', res.data)
       setReservations(res.data?.data || res.data || [])
     } catch (err) {
-      console.error('Error fetching reservations:', err)
+      console.error('Rezervasyonlar yüklenirken hata:', err)
       setReservations([])
     }
   }
@@ -96,12 +98,12 @@ const BrowseListings = () => {
   const submitReserve = async () => {
     const { item, datetime } = reserveModal
     if (!item) return
-    if (!datetime) return toast.error('Please choose date & time')
+    if (!datetime) return toast.error('Lütfen tarih ve saat seçin')
     try {
       setLoading(true)
       const payload = { waste_id: item.waste_id || item.id || item.wasteId, pickup_datetime: new Date(datetime).toISOString() }
       const res = await api.post('/reservations', payload)
-      toast.success(res.data?.message || 'Reserved')
+      toast.success(res.data?.message || 'Rezerve edildi')
 
       // remove listing from available list (existing behavior)
       setListings((prev) => prev.filter((l) => (l.waste_id || l.id) !== (item.waste_id || item.id)))
@@ -119,7 +121,7 @@ const BrowseListings = () => {
       // ensure listings reflect backend state
       fetchListings()
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Reservation failed')
+      toast.error(err.response?.data?.message || err.message || 'Rezervasyon yapılamadı')
     } finally {
       setLoading(false)
     }
@@ -128,12 +130,12 @@ const BrowseListings = () => {
   // new: delete reservation handler
   const handleDeleteReservation = async (r) => {
     const id = r.reservation_id || r.id
-    if (!id) return toast.error('Invalid reservation')
-    if (!window.confirm('Delete this reservation? This will release the waste back to waiting.')) return
+    if (!id) return toast.error('Geçersiz rezervasyon')
+    if (!window.confirm('Rezervasyonu silmek istediğinize emin misiniz?')) return
     try {
       setLoading(true)
       await api.delete(`/reservations/${id}`)
-      toast.success('Reservation deleted')
+      toast.success('Rezervasyon silindi')
 
       // remove from local reservations list
       setReservations((prev) => prev.filter((x) => (x.reservation_id || x.id) !== id))
@@ -143,32 +145,89 @@ const BrowseListings = () => {
       // refresh reservations to get authoritative state
       fetchMyReservations()
     } catch (err) {
-      console.error('Error deleting reservation:', err)
-      toast.error(err.response?.data?.message || err.message || 'Failed to delete reservation')
+      console.error('Rezervasyon silinirken hata:', err)
+      toast.error(err.response?.data?.message || err.message || 'Rezervasyon silinemedi')
     } finally {
       setLoading(false)
     }
   }
 
+  // Edit reservation
+  const handleEditReservation = (r) => {
+    setEditingReservation(r)
+    setEditReservationForm({
+      pickup_datetime: r.pickup_datetime ? new Date(r.pickup_datetime).toISOString().slice(0, 16) : ''
+    })
+  }
+
+  // Submit reservation update
+  const handleUpdateReservation = async () => {
+    if (!editingReservation) return
+    try {
+      setLoading(true)
+      const id = editingReservation.reservation_id || editingReservation.id
+      const payload = {
+        pickup_datetime: new Date(editReservationForm.pickup_datetime).toISOString()
+      }
+      const res = await api.put(`/reservations/${id}`, payload)
+      toast.success(res.data?.message || 'Rezervasyon güncellendi')
+      
+      // Update local reservations list
+      setReservations((prev) => prev.map((r) => 
+        (r.reservation_id || r.id) === id 
+          ? { ...r, ...payload } 
+          : r
+      ))
+      
+      setEditingReservation(null)
+      setEditReservationForm({ pickup_datetime: '' })
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Rezervasyon güncellenemedi')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getWasteTypeLabel = (type) => {
+    if (!type) return 'Atık'
+    const map = {
+
+      	'Cables & Chargers': 'Kablo & Şarj Cihazları',
+      	'Recyclable Textiles': 'Geri Dönüştürülebilir Tekstil',
+      	'Glass Bottles & Jars': 'Cam Şişe & Kaplar',
+      	'Cardboard Boxes & Packaging': 'Karton Kutular & Ambalajlar',
+      	'Old Books & Newspapers': 'Eski Kitaplar & Gazeteler',
+      	'PET Bottles': 'PET şişeler',
+      	'Hard Plastic Packaging': 'Sert Plastik Ambalajlar',
+      	'Metal Beverage Cans': 'Metal İçecek Kutuları',
+      	'Kitchen Metal Waste': 'Mutfak Metal Atığı',
+      	'Small Household Appliances': 'Küçük Ev Aletleri',
+
+    }
+    return map[type] || type
+  }
+
+  // Helper function to get Turkish status labels
   const getStatusLabel = (s) => {
     if (!s) return '-'
     const map = {
-      waiting: 'Waiting',
-      reserved: 'Reserved',
-      completed: 'Completed',
-      cancelled: 'Cancelled'
+      'waiting': 'Bekliyor',
+      'reserved': 'Rezerve Edildi',
+      'collected': 'Toplandı',
+      'cancelled': 'İptal Edildi'
     }
     return map[s] || String(s).charAt(0).toUpperCase() + String(s).slice(1)
   }
 
+ 
   if (pageError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-eco-50 via-white to-emerald-50 flex items-center justify-center">
         <div className="eco-card p-8 max-w-md text-center">
-          <h2 className="text-lg font-semibold text-red-600 mb-2">Error Loading Page</h2>
+          <h2 className="text-lg font-semibold text-red-600 mb-2">Sayfa Yükleme Hatası</h2>
           <p className="text-gray-600 mb-4">{pageError}</p>
           <button onClick={() => navigate('/dashboard')} className="btn btn-primary">
-            Back to Dashboard
+            Ana Sayfa
           </button>
         </div>
       </div>
@@ -185,53 +244,53 @@ const BrowseListings = () => {
             <button 
               onClick={() => navigate('/dashboard')}
               className="btn btn-ghost btn-sm gap-2"
-              title="Go back to dashboard"
+              title="Ana Sayfa"
             >
               <FiArrowLeft className="w-4 h-4" />
-              Back
+              Geri
             </button>
-            <h1 className="text-2xl font-bold">Browse Listings & Reserve</h1>
+            <h1 className="text-2xl font-bold">İlanlara Gözat & Rezerve Et</h1>
           </div>
         </div>
 
         {/* Filters Section */}
         <div className="eco-card p-4 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Filters</h2>
+          <h2 className="text-lg font-semibold mb-4">Filtreleme</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             <select 
               value={filters.type_id} 
               onChange={(e) => setFilters({ ...filters, type_id: e.target.value })} 
               className="select select-bordered select-sm"
             >
-              <option value="">All Types</option>
+              <option value="">Seçiniz</option>
               {wasteTypes.map((wt) => (
-                <option key={wt.type_id} value={wt.type_id}>{wt.type_name}</option>
+                <option key={wt.type_id} value={wt.type_id}>{getWasteTypeLabel(wt.type_name)}</option>
               ))}
             </select>
 
             <input 
-              placeholder="City" 
+              placeholder="Şehir" 
               value={filters.city} 
               onChange={(e) => setFilters({ ...filters, city: e.target.value })} 
               className="input input-bordered input-sm" 
             />
 
             <input 
-              placeholder="District" 
+              placeholder="İlçe" 
               value={filters.district} 
               onChange={(e) => setFilters({ ...filters, district: e.target.value })} 
               className="input input-bordered input-sm" 
             />
 
             <input 
-              placeholder="Neighborhood" 
+              placeholder="Mahalle" 
               value={filters.neighborhood} 
               onChange={(e) => setFilters({ ...filters, neighborhood: e.target.value })} 
               className="input input-bordered input-sm" 
             />
 
             <input 
-              placeholder="Street" 
+              placeholder="Sokak" 
               value={filters.street} 
               onChange={(e) => setFilters({ ...filters, street: e.target.value })} 
               className="input input-bordered input-sm" 
@@ -244,7 +303,7 @@ const BrowseListings = () => {
                 onChange={(e) => setPendingOnly(e.target.checked)} 
                 className="checkbox checkbox-sm" 
               />
-              <span className="text-sm">Only Pending</span>
+              <span className="text-sm">Sadece Aktif</span>
             </label>
           </div>
 
@@ -254,7 +313,7 @@ const BrowseListings = () => {
               onClick={fetchListings} 
               className="btn btn-primary btn-sm w-full"
             >
-              Search
+              Ara
             </button>
             <button 
               onClick={() => { 
@@ -264,13 +323,13 @@ const BrowseListings = () => {
               }} 
               className="btn btn-ghost btn-sm w-full"
             >
-              Clear
+              Temizle
             </button>
             <button 
               onClick={fetchMyReservations}
               className="btn btn-info btn-sm w-full"
             >
-              Refresh
+              Yenile
             </button>
           </div>
         </div>
@@ -281,25 +340,25 @@ const BrowseListings = () => {
           {/* Listings Column */}
           <div className="lg:col-span-2">
             <div className="eco-card p-4">
-              <h2 className="text-lg font-semibold mb-4">Available Listings</h2>
+              <h2 className="text-lg font-semibold mb-4">Mevcut İlanlar</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {loading && listings.length === 0 ? (
                   <div className="col-span-full py-8 flex justify-center">
                     <span className="loading loading-spinner loading-lg text-emerald-500"></span>
                   </div>
                 ) : listings.length === 0 ? (
-                  <div className="col-span-full text-sm text-gray-500 p-6 text-center">No listings found.</div>
+                  <div className="col-span-full text-sm text-gray-500 p-6 text-center">İlan bulunamadı.</div>
                 ) : listings.map((l) => (
                   <div key={l.waste_id || l.id} className="p-3 border rounded-lg bg-white hover:shadow-md transition">
-                    <div className="text-sm text-gray-700 font-semibold">{[l.city, l.neighborhood].filter(Boolean).join(', ') || l.city || 'Unknown'}</div>
-                    <div className="text-sm text-gray-600">{l.amount} {l.official_unit || 'kg'} — {l.type_name || l.waste_type_name || l.type}</div>
+                    <div className="text-sm text-gray-700 font-semibold">{[l.city, l.neighborhood].filter(Boolean).join(', ') || l.city || 'Bilinmeyen'}</div>
+                    <div className="text-sm text-gray-600">{l.amount} {l.official_unit || 'kg'} — {getWasteTypeLabel(l.type_name || l.waste_type_name || l.type)}</div>
                     <div className="text-xs text-gray-500 mt-2">{l.description ? l.description.slice(0,80) : ''}</div>
                     <div className="mt-3 flex justify-end">
                       <button 
                         onClick={() => handleReserveClick(l)} 
                         className="btn btn-sm btn-primary"
                       >
-                        Reserve
+                        Rezerve Et
                       </button>
                     </div>
                   </div>
@@ -311,30 +370,33 @@ const BrowseListings = () => {
           {/* My Reservations Sidebar */}
           <div className="space-y-4">
             <div className="eco-card p-4">
-              <h3 className="text-lg font-semibold mb-3">My Reservations</h3>
+              <h3 className="text-lg font-semibold mb-3">Benim Rezervasyonlarım</h3>
 
               <div className="space-y-3">
                 {reservations.length === 0 ? (
-                  <div className="text-sm text-gray-500 p-4 text-center bg-gray-50 rounded">No reservations yet.</div>
+                  <div className="text-sm text-gray-500 p-4 text-center bg-gray-50 rounded">Henüz rezervasyon yok.</div>
                 ) : reservations.map((r) => (
                   <div key={r.reservation_id || r.id} className="p-3 border rounded-lg bg-white">
                     <div className="flex items-start justify-between">
                       <div>
-                        <div className="text-sm font-semibold">{r.type_name || r.type}</div>
+                        <div className="text-sm font-semibold">{getWasteTypeLabel(r.type_name || r.type)}</div>
                         <div className="text-xs text-gray-600">{r.waste_description || r.description}</div>
-                        <div className="text-xs text-gray-500 mt-2">Pickup: {r.pickup_datetime ? new Date(r.pickup_datetime).toLocaleString() : '-'}</div>
-                        <div className="text-xs text-gray-700 mt-2">Address: {[r.city, r.district, r.neighborhood, r.street, r.address_details].filter(Boolean).join(', ') || '-'}</div>
-                        <div className="text-xs text-gray-700">Phone: {r.owner_phone || '-'}</div>
+                        <div className="text-xs text-gray-500 mt-2">Alım: {r.pickup_datetime ? new Date(r.pickup_datetime).toLocaleString() : '-'}</div>
+                        <div className="text-xs text-gray-700 mt-2">Adres: {[r.city, r.district, r.neighborhood, r.street, r.address_details].filter(Boolean).join(', ') || '-'}</div>
+                        <div className="text-xs text-gray-700">Telefon: {r.owner_phone || '-'}</div>
                       </div>
 
                       <div className="flex flex-col items-end gap-2">
-                        <div className="text-xs text-gray-500">Status: <span className="badge badge-sm">{getStatusLabel(r.status)}</span></div>
+                        <div className="text-xs text-gray-500">Durum: <span className="badge badge-sm">{getStatusLabel(r.status)}</span></div>
+                        <button onClick={() => handleEditReservation(r)} className="btn btn-sm btn-info flex items-center gap-2">
+                          ✏️ Güncelle
+                        </button>
                         <button
                           onClick={() => handleDeleteReservation(r)}
                           className="btn btn-error btn-xs"
-                          title="Delete reservation"
+                          title="Rezervasyonu sil"
                         >
-                          Delete
+                          Sil
                         </button>
                       </div>
                     </div>
@@ -344,11 +406,10 @@ const BrowseListings = () => {
             </div>
 
             <div className="eco-card p-4">
-              <h3 className="text-lg font-semibold mb-2">How It Works</h3>
+              <h3 className="text-lg font-semibold mb-2">Nasıl Çalışır</h3>
               <ul className="text-sm text-gray-600 list-disc ml-5 space-y-1">
-                <li>Click <strong>Reserve</strong> to schedule pickup</li>
-                <li>Resident contact info appears here</li>
-                <li>Combine filters with AND logic</li>
+                <li><strong>Rezerve Et</strong>'i tıklayarak alımı planla</li>
+                <li>Atığı paylaşanın iletişim bilgileri burada görünür</li>
               </ul>
             </div>
           </div>
@@ -358,11 +419,11 @@ const BrowseListings = () => {
         {reserveModal.open && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="bg-white rounded-lg shadow-lg w-11/12 max-w-md p-6">
-              <h3 className="text-lg font-semibold mb-2">Schedule Pickup</h3>
+              <h3 className="text-lg font-semibold mb-2">Alımı Planla</h3>
               <div className="text-sm text-gray-600 mb-3">
-                {reserveModal.item?.type_name || reserveModal.item?.waste_type_name} — {reserveModal.item?.amount} {reserveModal.item?.official_unit || 'kg'}
+                {getWasteTypeLabel(reserveModal.item?.type_name || reserveModal.item?.waste_type_name)} — {reserveModal.item?.amount} {reserveModal.item?.official_unit || 'kg'}
               </div>
-              <label className="label"><span className="label-text">When will you pick it up?</span></label>
+              <label className="label"><span className="label-text">Ne zaman alacaksın?</span></label>
               <input 
                 type="datetime-local" 
                 value={reserveModal.datetime} 
@@ -374,13 +435,47 @@ const BrowseListings = () => {
                   onClick={() => setReserveModal({ open: false, item: null, datetime: '' })} 
                   className="btn btn-ghost btn-sm"
                 >
-                  Cancel
+                  İptal
                 </button>
                 <button 
                   onClick={submitReserve} 
                   className="btn btn-primary btn-sm"
                 >
-                  Confirm
+                  Onayla
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Reservation Modal */}
+        {editingReservation && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white rounded-lg shadow-lg w-11/12 max-w-md p-6">
+              <h3 className="text-lg font-semibold mb-2">Rezervasyonu Güncelle</h3>
+              <div className="text-sm text-gray-600 mb-4">
+                {getWasteTypeLabel(editingReservation?.type_name || editingReservation?.waste_type_name)}
+              </div>
+              <label className="label"><span className="label-text">Yeni Alım Tarihi & Saati</span></label>
+              <input 
+                type="datetime-local" 
+                value={editReservationForm.pickup_datetime} 
+                onChange={(e) => setEditReservationForm({ ...editReservationForm, pickup_datetime: e.target.value })} 
+                className="input input-bordered w-full" 
+              />
+              <div className="flex justify-end gap-2 mt-4">
+                <button 
+                  onClick={() => { setEditingReservation(null); setEditReservationForm({ pickup_datetime: '' }); }} 
+                  className="btn btn-ghost btn-sm"
+                >
+                  İptal
+                </button>
+                <button 
+                  onClick={handleUpdateReservation} 
+                  disabled={loading}
+                  className="btn btn-primary btn-sm"
+                >
+                  {loading ? 'Kaydediliyor...' : 'Kaydet'}
                 </button>
               </div>
             </div>

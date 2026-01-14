@@ -81,7 +81,7 @@ const VerifyOTP = () => {
     const code = otp.join('')
     
     if (code.length !== 6) {
-      toast.error('Please enter the complete 6-digit code')
+      toast.error('Lütfen tam 6 haneli kodu girin')
       return
     }
     
@@ -90,7 +90,7 @@ const VerifyOTP = () => {
       const response = await verifyOTP(email, code)
       
       if (response.success) {
-        toast.success('Email verified successfully! 🎉')
+        toast.success('E-posta başarılı şekilde doğrulandı! 🎉')
         navigate('/dashboard')
       }
     } catch (error) {
@@ -113,14 +113,14 @@ const VerifyOTP = () => {
       const response = await resendOTP(email)
       
       if (response.success) {
-        toast.success('New code sent! Check your email.')
+        toast.success('Yeni kod gönderildi! E-postanızı kontrol edin.')
         setCountdown(60)
         setCanResend(false)
         setOtp(['', '', '', '', '', ''])
         inputRefs.current[0]?.focus()
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to resend code')
+      toast.error(error.response?.data?.message || 'Kod yeniden gönderilemedi')
     } finally {
       setResendLoading(false)
     }
@@ -128,12 +128,12 @@ const VerifyOTP = () => {
 
   return (
     <AuthLayout 
-      title="Verify Your Email" 
-      subtitle="We've sent a 6-digit code to your email"
+      title="E-postanızı Doğrulayın" 
+      subtitle="E-postanıza 6 haneli bir kod gönderdik"
     >
       {/* Email Display */}
       <div className="bg-eco-50 rounded-xl p-4 mb-6 text-center">
-        <p className="text-sm text-gray-600">Code sent to:</p>
+        <p className="text-sm text-gray-600">Kodu gönderilen adres:</p>
         <p className="font-semibold text-emerald-700">{email}</p>
       </div>
 
@@ -169,15 +169,15 @@ const VerifyOTP = () => {
               {resendLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="loading loading-spinner loading-xs"></span>
-                  Sending...
+                  Gönderiliyor...
                 </span>
               ) : (
-                "Didn't receive the code? Resend"
+                "Kod gelmedi mi? Tekrar Gönder"
               )}
             </button>
           ) : (
             <p className="text-gray-500">
-              Resend code in{' '}
+              Kodu tekrar gönder: {' '}
               <span className="font-semibold text-emerald-600">
                 {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
               </span>
@@ -190,7 +190,7 @@ const VerifyOTP = () => {
           loading={loading}
           className="w-full"
         >
-          Verify Email
+          E-posta Doğrula
         </LoadingButton>
       </form>
 
@@ -200,16 +200,16 @@ const VerifyOTP = () => {
           to="/login"
           className="text-gray-600 hover:text-emerald-600 text-sm"
         >
-          ← Back to Sign In
+          ← Giriş Sayfasına Dön
         </Link>
       </div>
 
       {/* Spam notice */}
       <div className="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
         <p className="text-sm text-amber-700">
-          <span className="font-semibold">Can't find the email?</span>
+          <span className="font-semibold">E-postası bulamadın mı?</span>
           <br />
-          Check your spam or junk folder
+          Spam veya Çöp klasörünü kontrol et
         </p>
       </div>
     </AuthLayout>

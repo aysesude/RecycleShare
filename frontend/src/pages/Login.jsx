@@ -61,7 +61,7 @@ const Login = () => {
       const response = await login(formData.email, formData.password)
 
       if (response.success) {
-        toast.success('Welcome back! 🌿')
+        toast.success('Hoşgeldin! 🌿')
         // Role-based redirect
         const user = response.data.user
         if (user?.role === 'admin') {
@@ -74,12 +74,12 @@ const Login = () => {
       const errorData = error.response?.data
 
       if (errorData?.data?.requiresVerification) {
-        toast.error('Please verify your email first')
+        toast.error('Lütfen e-postanızı doğrulayın')
         navigate('/verify-otp', {
           state: { email: errorData.data.email }
         })
       } else {
-        toast.error(errorData?.message || 'Login failed. Please try again.')
+        toast.error(errorData?.message || 'Giriş başarısız oldu. Lütfen tekrar deneyin.')
       }
     } finally {
       setLoading(false)
@@ -104,7 +104,7 @@ const Login = () => {
             }
           })
         } else {
-          toast.success('Welcome back! 🌿')
+          toast.success('Hoşgeldin! 🌿')
           // Role-based redirect
           const user = response.data.user
           if (user?.role === 'admin') {
@@ -115,28 +115,28 @@ const Login = () => {
         }
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Google login failed')
+      toast.error(error.response?.data?.message || 'Google girişi başarısız oldu')
     } finally {
       setGoogleLoading(false)
     }
   }
 
   const handleGoogleError = () => {
-    toast.error('Google login failed. Please try again.')
+    toast.error('Google girişi başarısız oldu. Lütfen tekrar deneyin.')
   }
 
   return (
     <AuthLayout
-      title="Welcome Back"
-      subtitle="Sign in to continue your eco journey"
+      title="Hoşgeldin"
+      subtitle="Çevreci olmaya devam etmek için giriş yapın"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <TextInput
-          label="Email Address"
+          label="E-posta Adresi"
           icon={FiMail}
           type="email"
           name="email"
-          placeholder="you@example.com"
+          placeholder="siz@ornek.com"
           value={formData.email}
           onChange={handleChange}
           error={errors.email}
@@ -144,9 +144,9 @@ const Login = () => {
         />
 
         <PasswordInput
-          label="Password"
+          label="Parola"
           name="password"
-          placeholder="Enter your password"
+          placeholder="Parolanızı girin"
           value={formData.password}
           onChange={handleChange}
           showPassword={showPassword}
@@ -161,7 +161,7 @@ const Login = () => {
             to="/forgot-password"
             className="text-sm text-emerald-600 hover:text-emerald-700 hover:underline"
           >
-            Forgot password?
+            Parolamı Unuttum
           </Link>
         </div>
 
@@ -170,11 +170,11 @@ const Login = () => {
           loading={loading}
           className="w-full mt-6"
         >
-          Sign In
+          Giriş Yap
         </LoadingButton>
       </form>
 
-      <Divider text="or continue with" />
+      <Divider text="veya" />
 
       {/* Google Login Button */}
       <div className="flex justify-center">
@@ -197,12 +197,12 @@ const Login = () => {
 
       {/* Sign Up Link */}
       <p className="text-center mt-6 text-gray-600">
-        Don't have an account?{' '}
+        Henüz bir hesabın yok mu?{' '}
         <Link
           to="/register"
           className="text-emerald-600 font-semibold hover:text-emerald-700 hover:underline"
         >
-          Sign up for free
+          Kaydol
         </Link>
       </p>
     </AuthLayout>

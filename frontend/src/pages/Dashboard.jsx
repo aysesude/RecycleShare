@@ -35,7 +35,7 @@ const [stats, setStats] = useState({
 
   const handleLogout = () => {
     logout()
-    toast.success('Logged out successfully')
+    toast.success('Çıkış başarılı oldu')
     navigate('/login')
   }
 
@@ -84,7 +84,7 @@ const [stats, setStats] = useState({
                 className="btn btn-ghost btn-sm text-gray-600 hover:text-red-500 hover:bg-red-50"
               >
                 <FiLogOut className="w-4 h-4" />
-                <span className="hidden sm:inline ml-1">Logout</span>
+                <span className="hidden sm:inline ml-1">Çıkış</span>
               </button>
             </div>
           </div>
@@ -98,10 +98,10 @@ const [stats, setStats] = useState({
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                Welcome back, {user?.firstName}! 👋
+                Hoşgeldin, {user?.firstName}! 👋
               </h1>
               <p className="text-gray-600">
-                Ready to make a difference today? Start sharing and recycling!
+                Çevreye katkıda bulunmaya ne dersin? Paylaş ve geri dönüştür!
               </p>
             </div>
             <div className="mt-4 md:mt-0">
@@ -121,7 +121,7 @@ const [stats, setStats] = useState({
           <div className="eco-card p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <FiUser className="text-emerald-500" />
-              Profile Information
+              Profil
             </h2>
 
             <div className="flex flex-col items-center mb-6">
@@ -156,7 +156,7 @@ const [stats, setStats] = useState({
               <div className="flex items-center gap-3 text-gray-600">
                 <FiCalendar className="w-5 h-5 text-emerald-500" />
                 <span className="text-sm">
-                  Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
+                  Üye kayıt tarihi: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR', {
                     month: 'long',
                     year: 'numeric'
                   }) : 'N/A'}
@@ -169,7 +169,7 @@ const [stats, setStats] = useState({
           <div className="lg:col-span-2">
             <div className="eco-card p-6 h-full">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                🎯 Quick Actions
+                🎯 İşlemler
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -178,8 +178,8 @@ const [stats, setStats] = useState({
                     ♻️
                   </div>
                   <div className="text-left">
-                    <h3 className="font-semibold text-gray-800">Start Recycling</h3>
-                    <p className="text-sm text-gray-500">Share recyclable items</p>
+                    <h3 className="font-semibold text-gray-800">Geri Dönüştür</h3>
+                    <p className="text-sm text-gray-500">Atıklarını paylaş ve yönet</p>
                   </div>
                 </button>
 
@@ -188,8 +188,8 @@ const [stats, setStats] = useState({
                     🔍
                   </div>
                   <div className="text-left">
-                    <h3 className="font-semibold text-gray-800">Browse Items</h3>
-                    <p className="text-sm text-gray-500">Find items near you</p>
+                    <h3 className="font-semibold text-gray-800">İçeriklere Gözat</h3>
+                    <p className="text-sm text-gray-500">Yakınındaki atıkları bul</p>
                   </div>
                 </button>
 
@@ -198,8 +198,8 @@ const [stats, setStats] = useState({
                     📊
                   </div>
                   <div className="text-left">
-                    <h3 className="font-semibold text-gray-800">View Impact</h3>
-                    <p className="text-sm text-gray-500">See your eco stats</p>
+                    <h3 className="font-semibold text-gray-800">Çevresel Etki</h3>
+                    <p className="text-sm text-gray-500">Çevreye katkını gör</p>
                   </div>
                 </button>
 
@@ -208,27 +208,27 @@ const [stats, setStats] = useState({
                     👥
                   </div>
                   <div className="text-left">
-                    <h3 className="font-semibold text-gray-800">Community</h3>
-                    <p className="text-sm text-gray-500">Connect with others</p>
+                    <h3 className="font-semibold text-gray-800">Topluluk</h3>
+                    <p className="text-sm text-gray-500">Bağlantı kur, atıkları topla</p>
                   </div>
                 </button>
               </div>
 
               {/* Stats Preview */}
               <div className="mt-6 p-4 bg-gradient-to-r from-emerald-500 to-eco-500 rounded-xl text-white">
-                <h3 className="font-semibold mb-3">🌍 Your Eco Impact</h3>
+                <h3 className="font-semibold mb-3">🌍 Çevresel Etkin</h3>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
                     <p className="text-2xl font-bold">{stats.itemsShared}</p>
-                    <p className="text-xs text-emerald-100">Items Shared</p>
+                    <p className="text-xs text-emerald-100">Paylaşılan Atık</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{stats.co2Saved} kg</p>
-                    <p className="text-xs text-emerald-100">CO₂ Saved</p>
+                    <p className="text-xs text-emerald-100">CO₂ tasarrufu</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{stats.communityConnections}</p>
-                    <p className="text-xs text-emerald-100">Connections</p>
+                    <p className="text-xs text-emerald-100">Bağlantılar</p>
                   </div>
                 </div>
               </div>
@@ -237,14 +237,7 @@ const [stats, setStats] = useState({
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-eco-100 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <p className="text-center text-gray-500 text-sm">
-            © 2026 RecycleShare. Making the world greener, one share at a time 🌍
-          </p>
-        </div>
-      </footer>
+    
     </div>
   )
 }

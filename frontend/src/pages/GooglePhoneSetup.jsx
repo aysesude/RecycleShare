@@ -32,11 +32,11 @@ const GooglePhoneSetup = () => {
 
   const validatePhone = () => {
     if (!phone) {
-      setError('Phone number is required')
+      setError('Telefon numarası gerekli')
       return false
     }
     if (!/^[\d\s\-()]{7,15}$/.test(phone)) {
-      setError('Please enter a valid phone number')
+      setError('Lütfen geçerli bir telefon numarası girin')
       return false
     }
     setError('')
@@ -62,15 +62,15 @@ const GooglePhoneSetup = () => {
       })
       
       if (response.success) {
-        toast.success('Welcome to RecycleShare! 🌿')
+        toast.success('RecycleShare’a Hoşgeldin! 🌿')
         navigate('/dashboard')
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to complete registration'
+      const errorMessage = error.response?.data?.message || 'Kaydı tamamlamak başarısız oldu'
       toast.error(errorMessage)
       
       if (errorMessage.includes('phone number is already')) {
-        setError('This phone number is already registered')
+        setError('Bu telefon numarası zaten kayıtlı')
       }
     } finally {
       setLoading(false)
@@ -79,8 +79,8 @@ const GooglePhoneSetup = () => {
 
   return (
     <AuthLayout 
-      title="Almost There!" 
-      subtitle="Add your phone number to complete registration"
+      title="Neredeyse Bitti!" 
+      subtitle="Kaydı tamamlamak için telefon numarasını ekleyin"
     >
       {/* User Info Card */}
       <div className="bg-eco-50 rounded-xl p-4 mb-6">
@@ -106,15 +106,15 @@ const GooglePhoneSetup = () => {
       {/* Why Phone Number Notice */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
         <p className="text-sm text-blue-700">
-          <span className="font-semibold">Why do we need this?</span>
+          <span className="font-semibold">Buna neden ihtiyacımız var?</span>
           <br />
-          Your phone number helps us verify your identity and enables important notifications about your recycling activities.
+          Telefon numarasınız kimliğinizi doğrulamamuza ve geri dönüştürme aktiviteleriniz hakkındaki önemli bildirimleri alınız yapılmasına yardımcı olur.
         </p>
       </div>
 
       <form onSubmit={handleSubmit}>
         <PhoneInput
-          label="Phone Number"
+          label="Telefon Numarası"
           name="phone"
           placeholder="555 123 4567"
           value={phone}
@@ -133,7 +133,7 @@ const GooglePhoneSetup = () => {
           loading={loading}
           className="w-full mt-6"
         >
-          Complete Registration
+          Kaydı Tamamla
         </LoadingButton>
       </form>
 
@@ -143,7 +143,7 @@ const GooglePhoneSetup = () => {
           to="/login"
           className="text-gray-600 hover:text-emerald-600 text-sm"
         >
-          Cancel and go back
+          İptal et ve geri dön
         </Link>
       </div>
     </AuthLayout>

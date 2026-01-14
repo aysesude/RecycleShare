@@ -102,13 +102,13 @@ const Register = () => {
       })
       
       if (response.success) {
-        toast.success('Account created! Check your email for verification code.')
+        toast.success('Hesap oluşturuldu! E-posta doğrulama kodu için e-postanızı kontrol edin.')
         navigate('/verify-otp', { 
           state: { email: formData.email } 
         })
       }
     } catch (error) {
-      console.error('Registration error:', error)
+      console.error('Kayıt hatası:', error)
       const errorData = error.response?.data
       
       if (errorData?.errors) {
@@ -119,11 +119,11 @@ const Register = () => {
         })
         setErrors(backendErrors)
       } else if (error.code === 'ECONNABORTED') {
-        toast.error('Server is starting up. Please wait a moment and try again.')
+        toast.error('Sunucu başlatılıyor. Lütfen biraz bekleyip tekrar deneyin.')
       } else if (!error.response) {
-        toast.error('Cannot connect to server. Please try again.')
+        toast.error('Sunucuya bağlanılamıyor. Lütfen tekrar deneyin.')
       } else {
-        toast.error(errorData?.message || 'Registration failed. Please try again.')
+        toast.error(errorData?.message || 'Kayıt başarısız oldu. Lütfen tekrar deneyin.')
       }
     } finally {
       setLoading(false)
@@ -148,45 +148,45 @@ const Register = () => {
             }
           })
         } else {
-          toast.success('Welcome to RecycleShare! 🌿')
+          toast.success('RecycleShare’a Hoşgeldin! 🌿')
           navigate('/dashboard')
         }
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Google sign up failed')
+      toast.error(error.response?.data?.message || 'Google kaydı başarısız oldu')
     } finally {
       setGoogleLoading(false)
     }
   }
 
   const handleGoogleError = () => {
-    toast.error('Google sign up failed. Please try again.')
+    toast.error('Google kaydı başarısız oldu. Lütfen tekrar deneyin.')
   }
 
   return (
     <AuthLayout 
-      title="Create Account" 
-      subtitle="Join the eco-friendly community"
+      title="Hesap Oluştur" 
+      subtitle="Çevreci dost topluluğa katılın"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Name Fields - Side by Side */}
         <div className="grid grid-cols-2 gap-4">
           <TextInput
-            label="First Name"
+            label="Ad"
             icon={FiUser}
             type="text"
             name="firstName"
-            placeholder="John"
+            placeholder="Ahmet"
             value={formData.firstName}
             onChange={handleChange}
             error={errors.firstName}
             autoComplete="given-name"
           />
           <TextInput
-            label="Last Name"
+            label="Soyad"
             type="text"
             name="lastName"
-            placeholder="Doe"
+            placeholder="Yılmaz"
             value={formData.lastName}
             onChange={handleChange}
             error={errors.lastName}
@@ -195,11 +195,11 @@ const Register = () => {
         </div>
 
         <TextInput
-          label="Email Address"
+          label="E-posta Adresi"
           icon={FiMail}
           type="email"
           name="email"
-          placeholder="you@example.com"
+          placeholder="siz@ornek.com"
           value={formData.email}
           onChange={handleChange}
           error={errors.email}
@@ -207,7 +207,7 @@ const Register = () => {
         />
 
         <PhoneInput
-          label="Phone Number"
+          label="Telefon Numarası"
           name="phone"
           placeholder="555 123 4567"
           value={formData.phone}
@@ -219,9 +219,9 @@ const Register = () => {
         />
 
         <PasswordInput
-          label="Password"
+          label="Parola"
           name="password"
-          placeholder="Min. 8 characters"
+          placeholder="Min. 8 karakter"
           value={formData.password}
           onChange={handleChange}
           showPassword={showPassword}
@@ -231,9 +231,9 @@ const Register = () => {
         />
 
         <PasswordInput
-          label="Confirm Password"
+          label="Parola Onayla"
           name="confirmPassword"
-          placeholder="Confirm your password"
+          placeholder="Parolanızı onaylaın"
           value={formData.confirmPassword}
           onChange={handleChange}
           showPassword={showConfirmPassword}
@@ -244,19 +244,19 @@ const Register = () => {
 
         {/* Password requirements hint */}
         <div className="text-xs text-gray-500 bg-eco-50 p-3 rounded-lg">
-          <p className="font-medium text-gray-600 mb-1">Password must contain:</p>
+          <p className="font-medium text-gray-600 mb-1">Parola şu öğeleri içermelidir:</p>
           <ul className="space-y-1">
             <li className={`flex items-center gap-2 ${formData.password.length >= 8 ? 'text-emerald-600' : ''}`}>
-              <span>{formData.password.length >= 8 ? '✓' : '○'}</span> At least 8 characters
+              <span>{formData.password.length >= 8 ? '✓' : '○'}</span> En az 8 karakter
             </li>
             <li className={`flex items-center gap-2 ${/[A-Z]/.test(formData.password) ? 'text-emerald-600' : ''}`}>
-              <span>{/[A-Z]/.test(formData.password) ? '✓' : '○'}</span> One uppercase letter
+              <span>{/[A-Z]/.test(formData.password) ? '✓' : '○'}</span> Bir büyük harf
             </li>
             <li className={`flex items-center gap-2 ${/[a-z]/.test(formData.password) ? 'text-emerald-600' : ''}`}>
-              <span>{/[a-z]/.test(formData.password) ? '✓' : '○'}</span> One lowercase letter
+              <span>{/[a-z]/.test(formData.password) ? '✓' : '○'}</span> Bir küçük harf
             </li>
             <li className={`flex items-center gap-2 ${/\d/.test(formData.password) ? 'text-emerald-600' : ''}`}>
-              <span>{/\d/.test(formData.password) ? '✓' : '○'}</span> One number
+              <span>{/\d/.test(formData.password) ? '✓' : '○'}</span> Bir sayı
             </li>
           </ul>
         </div>
@@ -266,11 +266,11 @@ const Register = () => {
           loading={loading}
           className="w-full mt-6"
         >
-          Create Account
+          Hesap Oluştur
         </LoadingButton>
       </form>
 
-      <Divider text="or sign up with" />
+      <Divider text="veya kaydol" />
 
       {/* Google Sign Up Button */}
       <div className="flex justify-center">
@@ -292,12 +292,12 @@ const Register = () => {
 
       {/* Sign In Link */}
       <p className="text-center mt-6 text-gray-600">
-        Already have an account?{' '}
+        Zaten bir hesabın var mı?{' '}
         <Link 
           to="/login" 
           className="text-emerald-600 font-semibold hover:text-emerald-700 hover:underline"
         >
-          Sign in
+          Giriş Yap
         </Link>
       </p>
     </AuthLayout>

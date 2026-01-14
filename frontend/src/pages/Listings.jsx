@@ -30,6 +30,41 @@ const Listings = () => {
   const [loading, setLoading] = useState(false)
   const [idToDelete, setIdToDelete] = useState(null)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState(null)
+  const [editForm, setEditForm] = useState({ description: '', amount: '', type_id: '' })
+
+  const getWasteTypeLabel = (type) => {
+    if (!type) return 'Atık'
+    const map = {
+
+      	'Cables & Chargers': 'Kablo & Şarj Cihazları',
+      	'Recyclable Textiles': 'Geri Dönüştürülebilir Tekstil',
+      	'Glass Bottles & Jars': 'Cam Şişe & Kaplar',
+      	'Cardboard Boxes & Packaging': 'Karton Kutular & Ambalajlar',
+      	'Old Books & Newspapers': 'Eski Kitaplar & Gazeteler',
+      	'PET Bottles': 'PET şişeler',
+      	'Hard Plastic Packaging': 'Sert Plastik Ambalajlar',
+      	'Metal Beverage Cans': 'Metal İçecek Kutuları',
+      	'Kitchen Metal Waste': 'Mutfak Metal Atığı',
+      	'Small Household Appliances': 'Küçük Ev Aletleri',
+
+    }
+    return map[type] || type
+  }
+
+  // Helper function to get Turkish status labels
+  const getStatusLabel = (s) => {
+    if (!s) return '-'
+    const map = {
+      'waiting': 'Bekliyor',
+      'reserved': 'Rezerve Edildi',
+      'collected': 'Toplandı',
+      'cancelled': 'İptal Edildi'
+    }
+    return map[s] || String(s).charAt(0).toUpperCase() + String(s).slice(1)
+  }
+
+  
 
   // Fetch waste types on mount
   useEffect(() => {
@@ -38,7 +73,7 @@ const Listings = () => {
         const res = await api.get('/waste/types')
         setWasteTypes(res.data?.data || [])
       } catch (err) {
-        toast.error('Failed to load waste types')
+        toast.error('Atık türleri yüklenemedi')
       }
     }
     
@@ -82,10 +117,10 @@ const Listings = () => {
       if (composedAddress) payload.address = composedAddress
 
       const res = await api.post('/waste', payload)
-      toast.success(res?.data?.message || 'Waste item created')
+      toast.success(res?.data?.message || 'Atık oluşturuldu')
       setForm({ description: '', weight: '', type_id: '', latitude: '', longitude: '' })
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Failed to create listing')
+      toast.error(err.response?.data?.message || err.message || 'Atık oluşturulamadı')
     } finally {
       setLoading(false)
     }
@@ -98,7 +133,7 @@ const Listings = () => {
       setListings(res.data?.data || res.data || [])
       setShowListings(true)
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Failed to fetch listings')
+      toast.error(err.response?.data?.message || err.message || 'Atıklar yüklenemedi')
     } finally {
       setLoading(false)
     }
@@ -116,12 +151,44 @@ const Listings = () => {
     try {
       setLoading(true)
       const res = await api.delete(`/waste/${idToDelete}`)
-      toast.success(res.data?.message || 'Item deleted')
+      toast.success(res.data?.message || 'Atık silindi')
       setListings((prev) => prev.filter((it) => (it.waste_id || it.id) !== idToDelete))
       setIdToDelete(null)
       setConfirmDeleteOpen(false)
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Delete failed')
+      toast.error(err.response?.data?.message || err.message || 'Atık silinemedi')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Open edit modal
+  const handleEditClick = (item) => {
+    setEditingItem(item)
+    setEditForm({
+      description: item.description || '',
+      amount: item.amount || item.weight || '',
+      type_id: item.type_id || ''
+    })
+  }
+
+  // Submit edit
+  const handleEditSubmit = async () => {
+    if (!editingItem) return
+    try {
+      setLoading(true)
+      const payload = {
+        description: editForm.description,
+        amount: parseFloat(editForm.amount) || 0,
+        type_id: parseInt(editForm.type_id)
+      }
+      const res = await api.put(`/waste/${editingItem.waste_id || editingItem.id}`, payload)
+      toast.success(res.data?.message || 'Atık güncellendi')
+      setListings((prev) => prev.map((it) => (it.waste_id || it.id) === (editingItem.waste_id || editingItem.id) ? { ...it, ...payload } : it))
+      setEditingItem(null)
+      setEditForm({ description: '', amount: '', type_id: '' })
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Atık güncellenemedi')
     } finally {
       setLoading(false)
     }
@@ -134,32 +201,32 @@ const Listings = () => {
           <button onClick={() => navigate('/dashboard')} className="btn btn-ghost p-2">
             <FiArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-2xl font-bold">Start Recycling — Create & Browse Listings</h1>
+          <h1 className="text-2xl font-bold">Atık Ekle, Listele</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Create Listing Form */}
           <div className="eco-card p-6">
-            <h2 className="text-lg font-semibold mb-4">Add New Waste Item</h2>
+            <h2 className="text-lg font-semibold mb-4">Yeni Atık Ekle</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="label">
-                  <span className="label-text">Description</span>
+                  <span className="label-text">Açıklama</span>
                 </label>
-                <textarea name="description" value={form.description} onChange={handleChange} className="textarea textarea-bordered w-full" rows={3} placeholder="Describe the waste item..." />
+                <textarea name="description" value={form.description} onChange={handleChange} className="textarea textarea-bordered w-full" rows={3} />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="label"><span className="label-text">Weight ({weightUnit})</span></label>
-                  <input name="weight" value={form.weight} onChange={handleChange} type="number" step={weightUnit === 'adet' ? '1' : '0.1'} placeholder={`Enter amount (${weightUnit})`} className="input input-bordered w-full" required />
+                  <label className="label"><span className="label-text">Boyut ({weightUnit})</span></label>
+                  <input name="weight" value={form.weight} onChange={handleChange} type="number" step={weightUnit === 'adet' ? '1' : '0.1'}  className="input input-bordered w-full" required />
                 </div>
                 <div>
-                  <label className="label"><span className="label-text">Waste Type</span></label>
+                  <label className="label"><span className="label-text">Atık tipi</span></label>
                   <select name="type_id" value={form.type_id} onChange={handleChange} required className="select select-bordered w-full">
-                    <option value="">Select Type</option>
+                    <option value="">Seçiniz</option>
                     {wasteTypes.map((wt) => (
-                      <option key={wt.type_id} value={wt.type_id}>{wt.type_name}</option>
+                      <option key={wt.type_id} value={wt.type_id}>{getWasteTypeLabel(wt.type_name)}</option>
                     ))}
                   </select>
                 </div>
@@ -168,14 +235,14 @@ const Listings = () => {
 
               <div className="flex items-center gap-3">
                 <button type="submit" disabled={loading} className="btn btn-primary">
-                  {loading ? 'Saving...' : 'Add Item'}
+                  {loading ? 'Kaydediliyor...' : 'Ekle'}
                 </button>
-                <button type="button" onClick={() => setForm({ description: '', weight: '', type_id: '' })} className="btn btn-ghost">Clear</button>
+                <button type="button" onClick={() => setForm({ description: '', weight: '', type_id: '' })} className="btn btn-ghost">Temizle</button>
               </div>
             </form>
 
             <div className="mt-4 text-sm text-gray-500">
-              Location: <strong>{[addressFields.street, addressFields.neighborhood, addressFields.district, addressFields.city].filter(Boolean).join(', ') || 'Not set'}</strong>
+              Konumunuz: <strong>{[addressFields.street, addressFields.neighborhood, addressFields.district, addressFields.city].filter(Boolean).join(', ') || 'Belirlenmedi'}</strong>
             </div>
           </div>
 
@@ -184,24 +251,24 @@ const Listings = () => {
             {/* Address Section */}
             <div className="eco-card p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold">Your Address</h2>
+                  <h2 className="text-lg font-semibold">Adresiniz</h2>
                   <button onClick={() => setEditingAddress(!editingAddress)} className="btn btn-ghost btn-sm">
-                    {editingAddress ? 'Cancel' : 'Edit'}
+                    {editingAddress ? 'Vazgeç' : 'Düzenle'}
                   </button>
                 </div>
 
                 {editingAddress ? (
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-2">
-                      <input name="city" value={addressFields.city} onChange={handleAddressChange} placeholder="City" className="input input-bordered w-full" />
-                      <input name="district" value={addressFields.district} onChange={handleAddressChange} placeholder="District" className="input input-bordered w-full" />
+                      <input name="city" value={addressFields.city} onChange={handleAddressChange} placeholder="Şehir" className="input input-bordered w-full" />
+                      <input name="district" value={addressFields.district} onChange={handleAddressChange} placeholder="İlçe" className="input input-bordered w-full" />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <input name="neighborhood" value={addressFields.neighborhood} onChange={handleAddressChange} placeholder="Neighborhood" className="input input-bordered w-full" />
-                      <input name="street" value={addressFields.street} onChange={handleAddressChange} placeholder="Street" className="input input-bordered w-full" />
+                      <input name="neighborhood" value={addressFields.neighborhood} onChange={handleAddressChange} placeholder="Mahalle" className="input input-bordered w-full" />
+                      <input name="street" value={addressFields.street} onChange={handleAddressChange} placeholder="Sokak" className="input input-bordered w-full" />
                     </div>
                     <div>
-                      <input name="address_details" value={addressFields.address_details} onChange={handleAddressChange} placeholder="Address details (apt, floor, notes)" className="input input-bordered w-full" />
+                      <input name="address_details" value={addressFields.address_details} onChange={handleAddressChange} placeholder="Detay" className="input input-bordered w-full" />
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={async () => {
@@ -214,17 +281,17 @@ const Listings = () => {
                             const updated = { ...stored, city: res.data?.data?.user?.city || addressFields.city, district: res.data?.data?.user?.district || addressFields.district, neighborhood: res.data?.data?.user?.neighborhood || addressFields.neighborhood, street: res.data?.data?.user?.street || addressFields.street, address_details: res.data?.data?.user?.address_details || addressFields.address_details }
                             localStorage.setItem('user', JSON.stringify(updated))
                           } catch (e) {}
-                          toast.success(res.data?.message || 'Address saved')
+                          toast.success(res.data?.message || 'Adres kaydedildi')
                         } catch (err) {
-                          toast.error(err.response?.data?.message || err.message || 'Failed to save address')
+                          toast.error(err.response?.data?.message || err.message || 'Adres kaydedilemedi')
                         }
-                      }} className="btn btn-sm btn-primary">Save Address</button>
-                      <button onClick={() => { setEditingAddress(false); setAddressFields({ city: user?.city||'', district: user?.district||'', neighborhood: user?.neighborhood||'', street: user?.street||'', address_details: user?.address_details||'' }) }} className="btn btn-sm btn-ghost">Reset</button>
+                      }} className="btn btn-sm btn-primary">Adresi Kaydet</button>
+                      <button onClick={() => { setEditingAddress(false); setAddressFields({ city: user?.city||"", district: user?.district||"", neighborhood: user?.neighborhood||"", street: user?.street||"", address_details: user?.address_details||"" }) }} className="btn btn-sm btn-ghost">Sıfırla</button>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <p className="text-gray-700">{[addressFields.street, addressFields.neighborhood, addressFields.district, addressFields.city].filter(Boolean).join(', ') || 'No address set.'}</p>
+                    <p className="text-gray-700">{[addressFields.street, addressFields.neighborhood, addressFields.district, addressFields.city].filter(Boolean).join(', ') || 'Adres belirlenmedi.'}</p>
                     {addressFields.address_details && <p className="text-sm text-gray-500 mt-2">{addressFields.address_details}</p>}
                   </div>
                 )}
@@ -233,10 +300,10 @@ const Listings = () => {
             {/* Listings Section */}
             <div className="eco-card p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">My Waste Items</h2>
+                <h2 className="text-lg font-semibold">Atıklarım</h2>
                 <div className="flex items-center gap-2">
-                  <button onClick={handleShowListings} className="btn btn-outline btn-sm">Refresh</button>
-                  <button onClick={() => { setShowListings(false); setListings([]) }} className="btn btn-ghost btn-sm">Hide</button>
+                  <button onClick={handleShowListings} className="btn btn-outline btn-sm">Yenile</button>
+                  <button onClick={() => { setShowListings(false); setListings([]) }} className="btn btn-ghost btn-sm">Gizle</button>
                 </div>
               </div>
 
@@ -249,25 +316,28 @@ const Listings = () => {
               {showListings && (
                 <div className="space-y-3">
                   {listings.length === 0 && (
-                    <div className="text-sm text-gray-500">No waste items yet. Add one above!</div>
+                    <div className="text-sm text-gray-500">Atık kaydı yok, hemen ekle!</div>
                   )}
 
                   {listings.map((l) => (
                     <div key={l.waste_id || l.id} className="p-3 border rounded-lg">
                       <div className="flex justify-between items-start">
                             <div>
-                              <h3 className="font-semibold">{l.waste_type_name || l.type}</h3>
+                              <h3 className="font-semibold">{getWasteTypeLabel(l.type_name || l.waste_type_name || l.type)}</h3>
                               <p className="text-sm text-gray-600">{l.description}</p>
                               <div className="text-xs text-gray-500 mt-2 space-y-1">
-                                <div>Amount: {l.amount || l.weight} {l.official_unit || 'kg'}</div>
-                                <div>Status: <span className="badge badge-sm badge-success">{l.status || 'waiting'}</span></div>
-                                {l.record_date && <div>Added: {new Date(l.record_date).toLocaleDateString()}</div>}
+                                <div>Boyut: {l.amount || l.weight} {l.official_unit || 'kg'}</div>
+                                <div>Durum: <span className="badge badge-sm badge-success">{getStatusLabel(l.status)}</span></div>
+                                {l.record_date && <div>Ekleme tarihi: {new Date(l.record_date).toLocaleDateString()}</div>}
                               </div>
                             </div>
                             <div className="ml-4">
+                              <button onClick={() => handleEditClick(l)} className="btn btn-sm btn-info flex items-center gap-2 mb-2">
+                                ✏️ Düzenle
+                              </button>
                               <button onClick={() => handleDelete(l.waste_id || l.id)} className="btn btn-sm btn-error flex items-center gap-2">
                                 <FiTrash className="w-3 h-3" />
-                                Delete
+                                Sil
                               </button>
                             </div>
                           </div>
@@ -277,7 +347,7 @@ const Listings = () => {
               )}
 
               {!showListings && (
-                <div className="text-sm text-gray-500">Press "Refresh" to load your waste items.</div>
+                <div className="text-sm text-gray-500">.</div>
               )}
             </div>
           </div>
@@ -285,11 +355,61 @@ const Listings = () => {
         {confirmDeleteOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="bg-white rounded-lg shadow-lg w-11/12 max-w-sm p-6">
-              <h3 className="text-lg font-semibold mb-2">Confirm Delete</h3>
-              <p className="text-sm text-gray-600 mb-4">Are you sure you want to delete this waste item? This action cannot be undone.</p>
+              <p className="text-sm text-gray-600 mb-4">Silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</p>
               <div className="flex justify-end gap-2">
-                <button onClick={() => { setConfirmDeleteOpen(false); setIdToDelete(null) }} className="btn btn-ghost">Cancel</button>
-                <button onClick={handleConfirmDelete} className="btn btn-error">Delete</button>
+                <button onClick={() => { setConfirmDeleteOpen(false); setIdToDelete(null) }} className="btn btn-ghost">Vazgeç</button>
+                <button onClick={handleConfirmDelete} className="btn btn-error">Sil</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Modal */}
+        {editingItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white rounded-lg shadow-lg w-11/12 max-w-md p-6">
+              <h2 className="text-lg font-semibold mb-4">Atığı Düzenle</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="label"><span className="label-text">Açıklama</span></label>
+                  <textarea 
+                    value={editForm.description} 
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} 
+                    className="textarea textarea-bordered w-full" 
+                    rows={2}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="label"><span className="label-text">Boyut</span></label>
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      value={editForm.amount} 
+                      onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} 
+                      className="input input-bordered w-full" 
+                    />
+                  </div>
+                  <div>
+                    <label className="label"><span className="label-text">Atık Tipi</span></label>
+                    <select 
+                      value={editForm.type_id} 
+                      onChange={(e) => setEditForm({ ...editForm, type_id: e.target.value })} 
+                      className="select select-bordered w-full"
+                    >
+                      <option value="">Seçiniz</option>
+                      {wasteTypes.map((wt) => (
+                        <option key={wt.type_id} value={wt.type_id}>{getWasteTypeLabel(wt.type_name)}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <button onClick={() => { setEditingItem(null); setEditForm({ description: '', amount: '', type_id: '' }); }} className="btn btn-ghost">Vazgeç</button>
+                <button onClick={handleEditSubmit} disabled={loading} className="btn btn-primary">
+                  {loading ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
               </div>
             </div>
           </div>
