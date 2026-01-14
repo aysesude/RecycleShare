@@ -316,7 +316,7 @@ const updateReservation = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Rezervasyon başarıyla güncellendi (Admin)',
+      message: 'Rezervasyon başarıyla güncellendi',
       data: result.rows[0]
     });
 
