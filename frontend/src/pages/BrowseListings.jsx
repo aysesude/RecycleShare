@@ -200,14 +200,13 @@ const BrowseListings = () => {
       	'PET Bottles': 'PET şişeler',
       	'Hard Plastic Packaging': 'Sert Plastik Ambalajlar',
       	'Metal Beverage Cans': 'Metal İçecek Kutuları',
-      	'Kitchen Metal Waste': 'Mutfak Metal Atığı',
+      	'Kitchen Metal Waste': 'Metal Mutfak Atığı',
       	'Small Household Appliances': 'Küçük Ev Aletleri',
 
     }
     return map[type] || type
   }
 
-  // Helper function to get Turkish status labels
   const getStatusLabel = (s) => {
     if (!s) return '-'
     const map = {
@@ -249,7 +248,7 @@ const BrowseListings = () => {
               <FiArrowLeft className="w-4 h-4" />
               Geri
             </button>
-            <h1 className="text-2xl font-bold">İlanlara Gözat & Rezerve Et</h1>
+            <h1 className="text-2xl font-bold">İlanlara Göz At & Rezerve Et</h1>
           </div>
         </div>
 
@@ -389,7 +388,7 @@ const BrowseListings = () => {
                       <div className="flex flex-col items-end gap-2">
                         <div className="text-xs text-gray-500">Durum: <span className="badge badge-sm">{getStatusLabel(r.status)}</span></div>
                         <button onClick={() => handleEditReservation(r)} className="btn btn-sm btn-info flex items-center gap-2">
-                          ✏️ Güncelle
+                          ✏️Düzenle
                         </button>
                         <button
                           onClick={() => handleDeleteReservation(r)}

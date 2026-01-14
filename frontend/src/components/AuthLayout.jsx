@@ -24,10 +24,10 @@ const AuthLayout = ({ children, title, subtitle }) => {
 
           {/* Tagline */}
           <h1 className="text-3xl lg:text-4xl font-bold text-center mb-4">
-            Join the Green Revolution
+            Gelecek İçin Dönüştür
           </h1>
           <p className="text-xl text-emerald-100 text-center max-w-md mb-12">
-            Share resources, reduce waste, and make a positive impact on our planet together.
+            Kaynakları paylaş, atıkları azalt ve gezegene olumlu etki yapmaya katkıda bulun.
           </p>
 
           {/* Features */}
@@ -37,8 +37,8 @@ const AuthLayout = ({ children, title, subtitle }) => {
                 ♻️
               </div>
               <div>
-                <h3 className="font-semibold">Easy Recycling</h3>
-                <p className="text-sm text-emerald-100">Connect with local recyclers</p>
+                <h3 className="font-semibold">Kolaylaştırılmış Geri Dönüşüm</h3>
+                <p className="text-sm text-emerald-100">Yerel geri dönüştürücülerle bağlant kur</p>
               </div>
             </div>
             <div className="flex items-center gap-4 bg-white/10 backdrop-blur-sm rounded-xl p-4">
@@ -46,8 +46,8 @@ const AuthLayout = ({ children, title, subtitle }) => {
                 🤝
               </div>
               <div>
-                <h3 className="font-semibold">Share Resources</h3>
-                <p className="text-sm text-emerald-100">Give items a second life</p>
+                <h3 className="font-semibold">Kaynakları Paylaş</h3>
+                <p className="text-sm text-emerald-100">Eşyalara ikinci bir hayat ver</p>
               </div>
             </div>
             <div className="flex items-center gap-4 bg-white/10 backdrop-blur-sm rounded-xl p-4">
@@ -55,8 +55,8 @@ const AuthLayout = ({ children, title, subtitle }) => {
                 🌍
               </div>
               <div>
-                <h3 className="font-semibold">Save the Planet</h3>
-                <p className="text-sm text-emerald-100">Track your eco impact</p>
+                <h3 className="font-semibold">Gezegeni Kurtar</h3>
+                <p className="text-sm text-emerald-100">Çevresel etkini takip et</p>
               </div>
             </div>
           </div>
@@ -97,10 +97,11 @@ const AuthLayout = ({ children, title, subtitle }) => {
 
           {/* Footer */}
           <p className="text-center text-sm text-gray-500 mt-6">
-            By continuing, you agree to our{' '}
-            <Link to="/terms" className="text-emerald-600 hover:underline">Terms of Service</Link>
-            {' '}and{' '}
-            <Link to="/privacy" className="text-emerald-600 hover:underline">Privacy Policy</Link>
+            Devam ederek{' '}
+            <Link to="/terms" className="text-emerald-600 hover:underline">Hizmet Şartlarımızı</Link>
+            {' '}ve{' '}
+            <Link to="/privacy" className="text-emerald-600 hover:underline">Gizlilik Politikasını</Link>
+            {' '}kabul etmiş sayılırsınız.
           </p>
         </div>
       </div>

@@ -30,7 +30,7 @@ const Community = () => {
       	'PET Bottles': 'PET şişeler',
       	'Hard Plastic Packaging': 'Sert Plastik Ambalajlar',
       	'Metal Beverage Cans': 'Metal İçecek Kutuları',
-      	'Kitchen Metal Waste': 'Mutfak Metal Atığı',
+      	'Kitchen Metal Waste': 'Metal Mutfak Atığı',
       	'Small Household Appliances': 'Küçük Ev Aletleri',
 
     }

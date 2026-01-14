@@ -46,9 +46,9 @@ const ViewImpact = () => {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-semibold text-emerald-700">Etki Görünümü</h1>
+            <h1 className="text-3xl font-semibold text-emerald-700">Çevre Etkiniz </h1>
             <p className="text-sm text-emerald-600 mt-1">
-              Topluluğunuzda atıkları ve emisyonları nasıl azalttığınızı görün.
+              Topluluğunuzda atıkları ve emisyonları nasıl azalttığınızı görün. Aylık ilerlemenizi takip edin ve çevresel etkinizi artırmak için motive olun!
             </p>
           </div>
           <button
