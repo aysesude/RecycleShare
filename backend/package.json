@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "dev:neon": "DATABASE_URL=postgresql://neondb_owner:npg_2YGbxCH5MWwR@ep-polished-flower-ag9xm9mb.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require nodemon server.js",
+    "dev:local": "createdb recycleshare 2>/dev/null; DATABASE_URL=postgresql://$(whoami)@localhost:5432/recycleshare nodemon server.js"
   },
   "engines": {
     "node": ">=18.0.0"

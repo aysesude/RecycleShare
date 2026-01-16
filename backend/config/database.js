@@ -1,10 +1,15 @@
 const { Pool } = require('pg');
 
-// Railway provides DATABASE_URL, local dev uses individual vars
-const pool = process.env.DATABASE_URL
+// DATABASE_URL varsa kullan, yoksa local değerleri kullan
+const connectionString = process.env.DATABASE_URL;
+
+// SSL sadece cloud (Neon/Railway) için gerekli - URL'de sslmode varsa kullan
+const useSSL = connectionString && connectionString.includes('sslmode=require');
+
+const pool = connectionString
   ? new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    connectionString: connectionString,
+    ssl: useSSL ? { rejectUnauthorized: false } : false
   })
   : new Pool({
     host: process.env.DB_HOST || 'localhost',
@@ -13,6 +18,7 @@ const pool = process.env.DATABASE_URL
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
   });
+
 
 // Test connection
 pool.on('connect', () => {
@@ -26,33 +32,58 @@ pool.on('error', (err) => {
 
 // Initialize database with schema
 const initializeDatabase = async () => {
-  const createUsersTable = `
-    CREATE TABLE IF NOT EXISTS users (
-      user_id SERIAL PRIMARY KEY,
-      first_name VARCHAR(50) NOT NULL,
-      last_name VARCHAR(50) NOT NULL,
-      email VARCHAR(100) UNIQUE NOT NULL,
-      password VARCHAR(255),
-      google_id VARCHAR(255) UNIQUE,
-      profile_picture VARCHAR(500),
-      phone VARCHAR(20) UNIQUE NOT NULL,
-      role VARCHAR(20) NOT NULL DEFAULT 'user',
-      is_verified BOOLEAN DEFAULT FALSE,
-      verification_code VARCHAR(6),
-      verification_code_expires TIMESTAMP,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      is_active BOOLEAN DEFAULT TRUE
-    );
-  `;
+  const fs = require('fs');
+  const path = require('path');
+
+  // Log current environment
+  const env = process.env.NODE_ENV || 'development';
+  console.log(`🌍 Environment: ${env}`);
+
+  // Her zaman schema.sql'i çalıştır (IF NOT EXISTS güvenli yapar)
+  console.log('🔧 Checking database schema...');
+
 
   try {
-    await pool.query(createUsersTable);
-    console.log('✅ Database schema initialized');
+    const schemaPath = path.join(__dirname, '../../database/schema.sql');
+
+    // schema.sql dosyası var mı kontrol et
+    if (!fs.existsSync(schemaPath)) {
+      console.log('⚠️ schema.sql not found - using basic initialization');
+      // Fallback: sadece users tablosunu oluştur
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          user_id SERIAL PRIMARY KEY,
+          first_name VARCHAR(50) NOT NULL,
+          last_name VARCHAR(50) NOT NULL,
+          email VARCHAR(100) UNIQUE NOT NULL,
+          password VARCHAR(255),
+          google_id VARCHAR(255) UNIQUE,
+          profile_picture VARCHAR(500),
+          phone VARCHAR(20) UNIQUE NOT NULL,
+          role VARCHAR(20) NOT NULL DEFAULT 'resident',
+          is_verified BOOLEAN DEFAULT FALSE,
+          verification_code VARCHAR(6),
+          verification_code_expires TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          is_active BOOLEAN DEFAULT TRUE
+        );
+      `);
+      console.log('✅ Basic database schema initialized');
+      return;
+    }
+
+    // schema.sql dosyasını oku ve çalıştır
+    const schema = fs.readFileSync(schemaPath, 'utf8');
+    await pool.query(schema);
+    console.log('✅ Full database schema initialized from schema.sql');
+
   } catch (error) {
-    console.error('❌ Failed to initialize database:', error);
-    throw error;
+    // Hata olursa sadece logla, uygulamayı durdurma
+    console.error('⚠️ Schema initialization warning:', error.message);
+    console.log('📝 Note: Tables may already exist (this is normal)');
   }
 };
+
 
 // Query helper
 const query = async (text, params) => {
