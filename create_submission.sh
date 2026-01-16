@@ -26,74 +26,19 @@ echo "📁 Dosyalar kopyalanıyor..."
 # 1. Backend (node_modules HARİÇ, .env DAHİL)
 echo "   → Backend..."
 mkdir -p "$TEMP_DIR/47/backend"
-rsync -av --exclude='node_modules' "$PROJECT_DIR/backend/" "$TEMP_DIR/47/backend/" > /dev/null 2>&1
+rsync -av --exclude='node_modules' --exclude='.env.example' "$PROJECT_DIR/backend/" "$TEMP_DIR/47/backend/" > /dev/null 2>&1
 
 # 2. Frontend (node_modules HARİÇ, .env DAHİL)
 echo "   → Frontend..."
 mkdir -p "$TEMP_DIR/47/frontend"
-rsync -av --exclude='node_modules' --exclude='dist' "$PROJECT_DIR/frontend/" "$TEMP_DIR/47/frontend/" > /dev/null 2>&1
+rsync -av --exclude='node_modules' --exclude='dist' --exclude='.env.example' "$PROJECT_DIR/frontend/" "$TEMP_DIR/47/frontend/" > /dev/null 2>&1
 
 # 3. Database schema
 echo "   → Database schema..."
 mkdir -p "$TEMP_DIR/47/database"
 cp "$PROJECT_DIR/database/schema.sql" "$TEMP_DIR/47/database/"
 
-# 4. .env.example dosyası (Referans olarak kalsın)
-echo "   → .env.example..."
-cp "$PROJECT_DIR/backend/.env.example" "$TEMP_DIR/47/" 2>/dev/null || echo "DATABASE_URL=..." > "$TEMP_DIR/47/.env.example"
-
-# 5. README.md
-echo "   → README.md..."
-cat > "$TEMP_DIR/47/README.md" << 'EOF'
-# RecycleShare - Geri Dönüşüm Paylaşım Platformu
-
-## Grup 47 - Veritabanı Lab 2526 Projesi
-
-### 🚀 Hızlı Kurulum ve Çalıştırma
-
-Proje **hazır yapılandırılmış** olarak gelmektedir. `.env` dosyaları dahildir.
-
-#### 1. Gereksinimler
-- Node.js 18+
-- PostgreSQL (Lokal veya Cloud)
-
-#### 2. Backend Çalıştırma
-
-```bash
-cd backend
-npm install
-
-# Seçenek A: Lokal Veritabanı (Otomatik oluşturulur)
-npm run dev:local
-
-# Seçenek B: Hazır Neon Cloud Veritabanı (.env içindeki ayarlarla)
-npm run dev
-```
-
-#### 3. Frontend Çalıştırma
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend: http://localhost:5173
-Backend: http://localhost:5001
-
-### 🌐 Canlı Demo
-- **Frontend:** https://recycle-share.vercel.app
-- **Backend:** https://recycleshare.onrender.com
-
-### 📊 Veritabanı Bilgileri
-- Platform: Neon Cloud / Local PostgreSQL
-- Schema: database/schema.sql
-- Tabloları `npm run dev:local` komutu otomatik oluşturur.
-
-### 📋 Ödev Notları
-- Tüm gereksinimler (Trigger, Constraint, View, vb.) `schema.sql` içindedir.
-- Detaylı proje raporu `rapor.pdf` dosyasındadır.
-EOF
+# 4. .env.example ve README.md çıkarıldı (İstek üzerine)
 
 # 6. Rapor (eğer varsa)
 if [ -f "$PROJECT_DIR/rapor.pdf" ]; then
