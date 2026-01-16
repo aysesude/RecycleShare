@@ -594,6 +594,15 @@ SELECT setval('trigger_logs_log_id_seq', 38);
 SELECT setval('waste_types_type_id_seq', 11);
 
 -- ============================================
+-- 9. FIX WASTE STATUSES (Trigger overwrites during INSERT)
+-- ============================================
+-- Reservations INSERT sırasında trigger waste durumunu 'reserved' yapıyor
+-- Bu yüzden collected olması gereken atıkları düzeltiyoruz
+UPDATE waste SET status = 'collected' WHERE waste_id IN (36, 37, 39, 45);
+UPDATE waste SET status = 'waiting' WHERE waste_id IN (1, 22, 24, 25, 27, 29, 30, 31, 43, 46, 47);
+UPDATE waste SET status = 'reserved' WHERE waste_id IN (6, 16, 26, 32, 38, 42);
+
+-- ============================================
 -- KISITLAMALAR ÖZETİ
 -- ============================================
 -- 1. Silme Kısıtı:
