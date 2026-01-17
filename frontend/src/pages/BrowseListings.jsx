@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../services/api'
+import api, { wasteAPI } from '../services/api'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
-import { FiArrowLeft } from 'react-icons/fi'
+import { FiArrowLeft, FiSearch, FiDatabase } from 'react-icons/fi'
 
 const BrowseListings = () => {
   const { user } = useAuth()
@@ -19,6 +19,10 @@ const BrowseListings = () => {
   const [reserveModal, setReserveModal] = useState({ open: false, item: null, datetime: '' })
   const [reservations, setReservations] = useState([])
   const [editingReservation, setEditingReservation] = useState(null)
+
+  // fn_get_waste_by_city FUNCTION state
+  const [citySearchResults, setCitySearchResults] = useState(null)
+  const [citySearchLoading, setCitySearchLoading] = useState(false)
   const [editReservationForm, setEditReservationForm] = useState({ pickup_datetime: '' })
 
   useEffect(() => {
@@ -87,11 +91,43 @@ const BrowseListings = () => {
     }
   }
 
+  // Combined Search Handler
+  const handleSearch = () => {
+    if (filters.city) {
+      searchByCity()
+    } else {
+      setCitySearchResults(null)
+      fetchListings()
+    }
+  }
+
+  // fn_get_waste_by_city fonksiyonunu çağır (SQL FUNCTION)
+  const searchByCity = async () => {
+    if (!filters.city) {
+      toast.error('Şehir filtresi gerekli')
+      return
+    }
+
+    setCitySearchLoading(true)
+    try {
+      const response = await wasteAPI.searchByCity(filters.city)
+      if (response.success) {
+        setCitySearchResults(response.data || [])
+        toast.success(`${response.count || 0} atık bulundu (fn_get_waste_by_city)`)
+      }
+    } catch (err) {
+      console.error('Şehir araması hatası:', err)
+      toast.error('Şehir araması yapılamadı')
+    } finally {
+      setCitySearchLoading(false)
+    }
+  }
+
   const handleReserveClick = (item) => {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     tomorrow.setHours(14, 0, 0, 0)
-    const isoLocal = new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000).toISOString().slice(0,16)
+    const isoLocal = new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
     setReserveModal({ open: true, item, datetime: isoLocal })
   }
 
@@ -107,6 +143,11 @@ const BrowseListings = () => {
 
       // remove listing from available list (existing behavior)
       setListings((prev) => prev.filter((l) => (l.waste_id || l.id) !== (item.waste_id || item.id)))
+
+      // also remove from city search results if present
+      if (citySearchResults) {
+        setCitySearchResults((prev) => prev.filter((l) => (l.waste_id || l.id) !== (item.waste_id || item.id)))
+      }
 
       // if backend returned reservation object, prepend it so status shows as reserved immediately
       const created = res.data?.data || res.data
@@ -171,14 +212,14 @@ const BrowseListings = () => {
       }
       const res = await api.put(`/reservations/${id}`, payload)
       toast.success(res.data?.message || 'Rezervasyon güncellendi')
-      
+
       // Update local reservations list
-      setReservations((prev) => prev.map((r) => 
-        (r.reservation_id || r.id) === id 
-          ? { ...r, ...payload } 
+      setReservations((prev) => prev.map((r) =>
+        (r.reservation_id || r.id) === id
+          ? { ...r, ...payload }
           : r
       ))
-      
+
       setEditingReservation(null)
       setEditReservationForm({ pickup_datetime: '' })
     } catch (err) {
@@ -192,16 +233,16 @@ const BrowseListings = () => {
     if (!type) return 'Atık'
     const map = {
 
-      	'Cables & Chargers': 'Kablo & Şarj Cihazları',
-      	'Recyclable Textiles': 'Geri Dönüştürülebilir Tekstil',
-      	'Glass Bottles & Jars': 'Cam Şişe & Kaplar',
-      	'Cardboard Boxes & Packaging': 'Karton Kutular & Ambalajlar',
-      	'Old Books & Newspapers': 'Eski Kitaplar & Gazeteler',
-      	'PET Bottles': 'PET şişeler',
-      	'Hard Plastic Packaging': 'Sert Plastik Ambalajlar',
-      	'Metal Beverage Cans': 'Metal İçecek Kutuları',
-      	'Kitchen Metal Waste': 'Metal Mutfak Atığı',
-      	'Small Household Appliances': 'Küçük Ev Aletleri',
+      'Cables & Chargers': 'Kablo & Şarj Cihazları',
+      'Recyclable Textiles': 'Geri Dönüştürülebilir Tekstil',
+      'Glass Bottles & Jars': 'Cam Şişe & Kaplar',
+      'Cardboard Boxes & Packaging': 'Karton Kutular & Ambalajlar',
+      'Old Books & Newspapers': 'Eski Kitaplar & Gazeteler',
+      'PET Bottles': 'PET şişeler',
+      'Hard Plastic Packaging': 'Sert Plastik Ambalajlar',
+      'Metal Beverage Cans': 'Metal İçecek Kutuları',
+      'Kitchen Metal Waste': 'Metal Mutfak Atığı',
+      'Small Household Appliances': 'Küçük Ev Aletleri',
 
     }
     return map[type] || type
@@ -218,7 +259,7 @@ const BrowseListings = () => {
     return map[s] || String(s).charAt(0).toUpperCase() + String(s).slice(1)
   }
 
- 
+
   if (pageError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-eco-50 via-white to-emerald-50 flex items-center justify-center">
@@ -236,11 +277,11 @@ const BrowseListings = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-eco-50 via-white to-emerald-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        
+
         {/* Header with Back Button */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => navigate('/dashboard')}
               className="btn btn-ghost btn-sm gap-2"
               title="Ana Sayfa"
@@ -256,9 +297,9 @@ const BrowseListings = () => {
         <div className="eco-card p-4 mb-6">
           <h2 className="text-lg font-semibold mb-4">Filtreleme</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-            <select 
-              value={filters.type_id} 
-              onChange={(e) => setFilters({ ...filters, type_id: e.target.value })} 
+            <select
+              value={filters.type_id}
+              onChange={(e) => setFilters({ ...filters, type_id: e.target.value })}
               className="select select-bordered select-sm"
             >
               <option value="">Seçiniz</option>
@@ -267,77 +308,132 @@ const BrowseListings = () => {
               ))}
             </select>
 
-            <input 
-              placeholder="Şehir" 
-              value={filters.city} 
-              onChange={(e) => setFilters({ ...filters, city: e.target.value })} 
-              className="input input-bordered input-sm" 
+            <input
+              placeholder="Şehir"
+              value={filters.city}
+              onChange={(e) => setFilters({ ...filters, city: e.target.value })}
+              className="input input-bordered input-sm"
             />
 
-            <input 
-              placeholder="İlçe" 
-              value={filters.district} 
-              onChange={(e) => setFilters({ ...filters, district: e.target.value })} 
-              className="input input-bordered input-sm" 
+            <input
+              placeholder="İlçe"
+              value={filters.district}
+              onChange={(e) => setFilters({ ...filters, district: e.target.value })}
+              className="input input-bordered input-sm"
             />
 
-            <input 
-              placeholder="Mahalle" 
-              value={filters.neighborhood} 
-              onChange={(e) => setFilters({ ...filters, neighborhood: e.target.value })} 
-              className="input input-bordered input-sm" 
+            <input
+              placeholder="Mahalle"
+              value={filters.neighborhood}
+              onChange={(e) => setFilters({ ...filters, neighborhood: e.target.value })}
+              className="input input-bordered input-sm"
             />
 
-            <input 
-              placeholder="Sokak" 
-              value={filters.street} 
-              onChange={(e) => setFilters({ ...filters, street: e.target.value })} 
-              className="input input-bordered input-sm" 
+            <input
+              placeholder="Sokak"
+              value={filters.street}
+              onChange={(e) => setFilters({ ...filters, street: e.target.value })}
+              className="input input-bordered input-sm"
             />
 
             <label className="flex items-center gap-2 justify-center">
-              <input 
-                type="checkbox" 
-                checked={pendingOnly} 
-                onChange={(e) => setPendingOnly(e.target.checked)} 
-                className="checkbox checkbox-sm" 
+              <input
+                type="checkbox"
+                checked={pendingOnly}
+                onChange={(e) => setPendingOnly(e.target.checked)}
+                className="checkbox checkbox-sm"
               />
               <span className="text-sm">Sadece Aktif</span>
             </label>
           </div>
 
           {/* Action Buttons - 2x3 Matrix */}
-          <div className="grid grid-cols-3 gap-3 mt-4">
-            <button 
-              onClick={fetchListings} 
-              className="btn btn-primary btn-sm w-full"
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+            <button
+              onClick={handleSearch}
+              disabled={citySearchLoading || loading}
+              className="btn btn-primary btn-sm w-full gap-1"
             >
+              {(citySearchLoading || loading) ? <span className="loading loading-spinner loading-xs"></span> : <FiSearch className="w-4 h-4" />}
               Ara
             </button>
-            <button 
-              onClick={() => { 
-                setFilters({ city: '', district: '', neighborhood: '', street: '', type_id: '' }); 
-                setPendingOnly(true); 
-                fetchListings() 
-              }} 
+
+            <button
+              onClick={() => {
+                setFilters({ city: '', district: '', neighborhood: '', street: '', type_id: '' });
+                setPendingOnly(true);
+                setCitySearchResults(null);
+                // Call fetchListings with empty filters immediately or just reset state?
+                // Let's reset but not auto-fetch to let user decide, or auto-fetch all. 
+                // Usually Clear triggers a refresh of default view.
+                setLoading(true); // Manually trigger since we can't pass args easily to fetchListings via setState callback immediately
+                // Actually safer to just set state and then call fetchListings manually with empty params obj logic if needed, 
+                // or just let user click search. But user expects 'Temizle' to reset view.
+                // We will just do a fresh fetch with empty filters logic:
+                api.get('/waste', { params: { status: 'waiting' } }).then(res => {
+                  setListings(res.data?.data || res.data || [])
+                  setLoading(false)
+                }).catch(() => setLoading(false))
+              }}
               className="btn btn-ghost btn-sm w-full"
             >
               Temizle
             </button>
-            <button 
+            <button
               onClick={fetchMyReservations}
               className="btn btn-info btn-sm w-full"
             >
               Yenile
             </button>
           </div>
+
+          {/* fn_get_waste_by_city info */}
+          <div className="text-xs text-slate-400 mt-2 flex items-center gap-2">
+            <span className="badge badge-ghost badge-sm">İpucu</span>
+            <span>Şehir filtresi girildiğinde otomatik olarak <strong>SQL Function</strong> (<code>fn_get_waste_by_city</code>) kullanılır.</span>
+          </div>
         </div>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
+
           {/* Listings Column */}
           <div className="lg:col-span-2">
+            {/* City Search Results (fn_get_waste_by_city) */}
+            {citySearchResults !== null && (
+              <div className="eco-card p-4 mb-4 border-2 border-purple-200 bg-purple-50/50">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2 text-purple-700">
+                    <FiDatabase className="text-purple-500" />
+                    Şehir Arama Sonuçları
+                    <span className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full ml-2">
+                      FUNCTION
+                    </span>
+                  </h2>
+                  <button
+                    onClick={() => setCitySearchResults(null)}
+                    className="btn btn-ghost btn-xs text-purple-600"
+                  >
+                    ✕ Kapat
+                  </button>
+                </div>
+                <p className="text-xs text-purple-500 mb-3">
+                  📌 SQL: <code className="bg-purple-100 px-1 rounded">fn_get_waste_by_city('{filters.city}')</code> — {citySearchResults.length} sonuç
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {citySearchResults.length === 0 ? (
+                    <div className="col-span-full text-sm text-purple-500 p-6 text-center">Bu şehirde aktif atık bulunamadı.</div>
+                  ) : citySearchResults.map((l) => (
+                    <div key={l.waste_id} className="p-3 border border-purple-200 rounded-lg bg-white hover:shadow-md transition">
+                      <div className="text-sm text-purple-700 font-semibold">{l.owner_name}</div>
+                      <div className="text-sm text-gray-600">{l.amount} kg — {getWasteTypeLabel(l.type_name)}</div>
+                      <div className="text-xs text-gray-500 mt-1">{l.district} • {l.status}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="eco-card p-4">
               <h2 className="text-lg font-semibold mb-4">Mevcut İlanlar</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -351,10 +447,10 @@ const BrowseListings = () => {
                   <div key={l.waste_id || l.id} className="p-3 border rounded-lg bg-white hover:shadow-md transition">
                     <div className="text-sm text-gray-700 font-semibold">{[l.city, l.neighborhood].filter(Boolean).join(', ') || l.city || 'Bilinmeyen'}</div>
                     <div className="text-sm text-gray-600">{l.amount} {l.official_unit || 'kg'} — {getWasteTypeLabel(l.type_name || l.waste_type_name || l.type)}</div>
-                    <div className="text-xs text-gray-500 mt-2">{l.description ? l.description.slice(0,80) : ''}</div>
+                    <div className="text-xs text-gray-500 mt-2">{l.description ? l.description.slice(0, 80) : ''}</div>
                     <div className="mt-3 flex justify-end">
-                      <button 
-                        onClick={() => handleReserveClick(l)} 
+                      <button
+                        onClick={() => handleReserveClick(l)}
                         className="btn btn-sm btn-primary"
                       >
                         Rezerve Et
@@ -423,21 +519,21 @@ const BrowseListings = () => {
                 {getWasteTypeLabel(reserveModal.item?.type_name || reserveModal.item?.waste_type_name)} — {reserveModal.item?.amount} {reserveModal.item?.official_unit || 'kg'}
               </div>
               <label className="label"><span className="label-text">Ne zaman alacaksın?</span></label>
-              <input 
-                type="datetime-local" 
-                value={reserveModal.datetime} 
-                onChange={(e) => setReserveModal({ ...reserveModal, datetime: e.target.value })} 
-                className="input input-bordered w-full" 
+              <input
+                type="datetime-local"
+                value={reserveModal.datetime}
+                onChange={(e) => setReserveModal({ ...reserveModal, datetime: e.target.value })}
+                className="input input-bordered w-full"
               />
               <div className="flex justify-end gap-2 mt-4">
-                <button 
-                  onClick={() => setReserveModal({ open: false, item: null, datetime: '' })} 
+                <button
+                  onClick={() => setReserveModal({ open: false, item: null, datetime: '' })}
                   className="btn btn-ghost btn-sm"
                 >
                   İptal
                 </button>
-                <button 
-                  onClick={submitReserve} 
+                <button
+                  onClick={submitReserve}
                   className="btn btn-primary btn-sm"
                 >
                   Onayla
@@ -456,21 +552,21 @@ const BrowseListings = () => {
                 {getWasteTypeLabel(editingReservation?.type_name || editingReservation?.waste_type_name)}
               </div>
               <label className="label"><span className="label-text">Yeni Alım Tarihi & Saati</span></label>
-              <input 
-                type="datetime-local" 
-                value={editReservationForm.pickup_datetime} 
-                onChange={(e) => setEditReservationForm({ ...editReservationForm, pickup_datetime: e.target.value })} 
-                className="input input-bordered w-full" 
+              <input
+                type="datetime-local"
+                value={editReservationForm.pickup_datetime}
+                onChange={(e) => setEditReservationForm({ ...editReservationForm, pickup_datetime: e.target.value })}
+                className="input input-bordered w-full"
               />
               <div className="flex justify-end gap-2 mt-4">
-                <button 
-                  onClick={() => { setEditingReservation(null); setEditReservationForm({ pickup_datetime: '' }); }} 
+                <button
+                  onClick={() => { setEditingReservation(null); setEditReservationForm({ pickup_datetime: '' }); }}
                   className="btn btn-ghost btn-sm"
                 >
                   İptal
                 </button>
-                <button 
-                  onClick={handleUpdateReservation} 
+                <button
+                  onClick={handleUpdateReservation}
                   disabled={loading}
                   className="btn btn-primary btn-sm"
                 >
