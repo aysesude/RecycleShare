@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../services/api'
+import api, { reportAPI } from '../services/api'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
-import { FiArrowLeft, FiMapPin, FiBox, FiUsers, FiX, FiCalendar, FiAlignLeft, FiUser, FiPhone, FiClock } from 'react-icons/fi'
+import { FiArrowLeft, FiMapPin, FiBox, FiUsers, FiX, FiCalendar, FiAlignLeft, FiUser, FiPhone, FiClock, FiDatabase, FiAward } from 'react-icons/fi'
 
 const Community = () => {
   const navigate = useNavigate()
@@ -18,20 +18,25 @@ const Community = () => {
   const [selectedItem, setSelectedItem] = useState(null)
   const [editAmount, setEditAmount] = useState('')
 
+  // v_user_statistics VIEW state
+  const [userStats, setUserStats] = useState([])
+  const [statsLoading, setStatsLoading] = useState(false)
+  const [showStatsModal, setShowStatsModal] = useState(false)
+
   const getWasteTypeLabel = (type) => {
     if (!type) return 'Atık'
     const map = {
 
-      	'Cables & Chargers': 'Kablo & Şarj Cihazları',
-      	'Recyclable Textiles': 'Geri Dönüştürülebilir Tekstil',
-      	'Glass Bottles & Jars': 'Cam Şişe & Kaplar',
-      	'Cardboard Boxes & Packaging': 'Karton Kutular & Ambalajlar',
-      	'Old Books & Newspapers': 'Eski Kitaplar & Gazeteler',
-      	'PET Bottles': 'PET şişeler',
-      	'Hard Plastic Packaging': 'Sert Plastik Ambalajlar',
-      	'Metal Beverage Cans': 'Metal İçecek Kutuları',
-      	'Kitchen Metal Waste': 'Metal Mutfak Atığı',
-      	'Small Household Appliances': 'Küçük Ev Aletleri',
+      'Cables & Chargers': 'Kablo & Şarj Cihazları',
+      'Recyclable Textiles': 'Geri Dönüştürülebilir Tekstil',
+      'Glass Bottles & Jars': 'Cam Şişe & Kaplar',
+      'Cardboard Boxes & Packaging': 'Karton Kutular & Ambalajlar',
+      'Old Books & Newspapers': 'Eski Kitaplar & Gazeteler',
+      'PET Bottles': 'PET şişeler',
+      'Hard Plastic Packaging': 'Sert Plastik Ambalajlar',
+      'Metal Beverage Cans': 'Metal İçecek Kutuları',
+      'Kitchen Metal Waste': 'Metal Mutfak Atığı',
+      'Small Household Appliances': 'Küçük Ev Aletleri',
 
     }
     return map[type] || type
@@ -97,6 +102,23 @@ const Community = () => {
     }
   }
 
+  // v_user_statistics VIEW'ını çağır
+  const fetchUserStatistics = async () => {
+    setStatsLoading(true)
+    try {
+      const response = await reportAPI.getUserStatistics()
+      if (response.success) {
+        setUserStats(response.data || [])
+        setShowStatsModal(true)
+      }
+    } catch (err) {
+      console.error('Kullanıcı istatistikleri hatası:', err)
+      toast.error('İstatistikler yüklenemedi')
+    } finally {
+      setStatsLoading(false)
+    }
+  }
+
   const handleCollectAction = async () => {
     if (!editAmount || parseFloat(editAmount) <= 0) {
       return toast.error("Uygun bir miktar girin");
@@ -121,11 +143,22 @@ const Community = () => {
     <div className="min-h-screen bg-[#F8FAFC] p-4 lg:p-8 uppercase font-bold">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <button onClick={() => navigate('/dashboard')} className="btn btn-circle btn-ghost bg-white shadow-sm text-emerald-600 border-none">
-            <FiArrowLeft size={20} />
+        <div className="flex items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate('/dashboard')} className="btn btn-circle btn-ghost bg-white shadow-sm text-emerald-600 border-none">
+              <FiArrowLeft size={20} />
+            </button>
+            <h1 className="text-2xl font-black tracking-tighter text-slate-800">Topluluk Merkezi</h1>
+          </div>
+          <button
+            onClick={fetchUserStatistics}
+            disabled={statsLoading}
+            className="btn btn-sm bg-purple-500 hover:bg-purple-600 text-white border-none gap-2"
+            title="v_user_statistics VIEW"
+          >
+            <FiDatabase size={16} />
+            {statsLoading ? 'Yükleniyor...' : 'Tüm Kullanıcı İstatistikleri'}
           </button>
-          <h1 className="text-2xl font-black tracking-tighter text-slate-800">Topluluk Merkezi</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -168,16 +201,16 @@ const Community = () => {
                   <div
                     key={i}
                     className={`p-4 rounded-2xl border transition-all hover:shadow-md ${i === 0 ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200' :
-                        i === 1 ? 'bg-gradient-to-r from-slate-50 to-gray-50 border-slate-200' :
-                          i === 2 ? 'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200' :
-                            'bg-slate-50 border-slate-100'
+                      i === 1 ? 'bg-gradient-to-r from-slate-50 to-gray-50 border-slate-200' :
+                        i === 2 ? 'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200' :
+                          'bg-slate-50 border-slate-100'
                       }`}
                   >
                     <div className="flex items-center gap-3 mb-2">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-black ${i === 0 ? 'bg-amber-400 text-white' :
-                          i === 1 ? 'bg-slate-400 text-white' :
-                            i === 2 ? 'bg-orange-400 text-white' :
-                              'bg-emerald-100 text-emerald-600'
+                        i === 1 ? 'bg-slate-400 text-white' :
+                          i === 2 ? 'bg-orange-400 text-white' :
+                            'bg-emerald-100 text-emerald-600'
                         }`}>
                         {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
                       </div>
@@ -272,8 +305,68 @@ const Community = () => {
                   <button onClick={handleCollectAction} className="btn btn-primary w-full h-16 bg-emerald-600 border-none text-white rounded-2xl font-black text-lg shadow-lg shadow-emerald-200">Atığı Topla</button>
                 </div>
               ) : (
-                  <button onClick={() => setSelectedItem(null)} className="btn btn-ghost w-full h-14 text-slate-400 font-bold border border-slate-100 rounded-2xl uppercase">Kapat</button>
+                <button onClick={() => setSelectedItem(null)} className="btn btn-ghost w-full h-14 text-slate-400 font-bold border border-slate-100 rounded-2xl uppercase">Kapat</button>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* USER STATISTICS MODAL (v_user_statistics VIEW) */}
+        {showStatsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[2.5rem] w-full max-w-3xl p-8 shadow-2xl relative animate-in fade-in zoom-in duration-150 max-h-[80vh] overflow-hidden">
+              <button onClick={() => setShowStatsModal(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors">
+                <FiX size={24} />
+              </button>
+
+              <div className="mb-6">
+                <h3 className="text-2xl font-black text-slate-800 uppercase leading-none mb-2 flex items-center gap-3">
+                  <FiAward className="text-purple-500" />
+                  Kullanıcı İstatistikleri
+                  <span className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full ml-2 normal-case font-bold">
+                    VIEW
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  📌 SQL: <code className="bg-slate-100 px-1 rounded">v_user_statistics</code> — {userStats.length} kullanıcı
+                </p>
+              </div>
+
+              <div className="overflow-y-auto max-h-[55vh]">
+                {userStats.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-4xl mb-2">📊</div>
+                    <p className="text-slate-400">Veri bulunamadı</p>
+                  </div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-white">
+                      <tr className="bg-purple-50 text-purple-700">
+                        <th className="text-left p-3 rounded-l-lg">Kullanıcı</th>
+                        <th className="text-left p-3">Şehir</th>
+                        <th className="text-right p-3">Paylaşılan</th>
+                        <th className="text-right p-3">Rezervasyon</th>
+                        <th className="text-right p-3 rounded-r-lg">Puan</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {userStats.map((u, idx) => (
+                        <tr key={idx} className="border-b border-slate-50 hover:bg-purple-50/50 transition-colors">
+                          <td className="p-3 font-medium text-slate-800">{u.full_name}</td>
+                          <td className="p-3 text-slate-600">{u.city || '-'}</td>
+                          <td className="p-3 text-right text-slate-600">{u.total_waste_posted || 0}</td>
+                          <td className="p-3 text-right text-slate-600">{u.total_reservations_made || 0}</td>
+                          <td className="p-3 text-right font-bold text-emerald-600">{u.total_environmental_score || 0}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button onClick={() => setShowStatsModal(false)} className="btn bg-slate-100 text-slate-600 border-none px-8">Kapat</button>
+              </div>
             </div>
           </div>
         )}
@@ -282,4 +375,8 @@ const Community = () => {
   )
 }
 
+// Sayfa sonuna modal ekleniyor
+const CommunityWithModal = () => {
+  return <Community />
+}
 export default Community

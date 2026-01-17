@@ -165,21 +165,17 @@ JOIN users u ON w.user_id = u.user_id
 WHERE w.status IN ('waiting', 'reserved')
 ORDER BY w.record_date DESC;
 
--- VIEW 2: Kullanıcı istatistikleri özeti
+-- VIEW 2: Kullanıcı istatistikleri özeti (FIXED: Subquery ile doğru hesaplama)
 CREATE OR REPLACE VIEW v_user_statistics AS
 SELECT 
     u.user_id,
     u.first_name || ' ' || u.last_name AS full_name,
     u.email,
     u.city,
-    COALESCE(COUNT(DISTINCT w.waste_id), 0) AS total_waste_posted,
-    COALESCE(COUNT(DISTINCT r.reservation_id), 0) AS total_reservations_made,
-    COALESCE(SUM(es.total_score), 0) AS total_environmental_score
-FROM users u
-LEFT JOIN waste w ON u.user_id = w.user_id
-LEFT JOIN reservations r ON u.user_id = r.collector_id
-LEFT JOIN environmental_scores es ON u.user_id = es.user_id
-GROUP BY u.user_id, u.first_name, u.last_name, u.email, u.city;
+    COALESCE((SELECT COUNT(*) FROM waste w WHERE w.user_id = u.user_id), 0) AS total_waste_posted,
+    COALESCE((SELECT COUNT(*) FROM reservations r WHERE r.collector_id = u.user_id), 0) AS total_reservations_made,
+    COALESCE((SELECT SUM(es.total_score) FROM environmental_scores es WHERE es.user_id = u.user_id), 0) AS total_environmental_score
+FROM users u;
 
 -- VIEW 3: Aylık geri dönüşüm raporu
 CREATE OR REPLACE VIEW v_monthly_recycling_report AS

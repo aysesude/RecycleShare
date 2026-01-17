@@ -173,6 +173,45 @@ export const wasteAPI = {
   getImpactStats: async () => {
     const response = await api.get('/waste/stats')
     return response.data
+  },
+
+  // fn_get_waste_by_city fonksiyonunu çağırır
+  searchByCity: async (city) => {
+    const response = await api.get('/waste/search', { params: { city } })
+    return response.data
+  }
+}
+
+// Report API calls (SQL VIEW ve FUNCTION entegrasyonu)
+export const reportAPI = {
+  // v_user_statistics VIEW'ını çağırır
+  getUserStatistics: async () => {
+    const response = await api.get('/reports/user-statistics')
+    return response.data
+  },
+
+  // v_monthly_recycling_report VIEW'ını çağırır
+  getMonthlyOverview: async (year) => {
+    const response = await api.get('/reports/monthly-overview', { params: { year } })
+    return response.data
+  },
+
+  // fn_get_user_monthly_report fonksiyonunu çağırır (CURSOR & RECORD)
+  getUserMonthlyReport: async (userId, year, month) => {
+    const response = await api.get(`/reports/user/${userId}/monthly`, { params: { year, month } })
+    return response.data
+  },
+
+  // fn_calculate_user_total_score fonksiyonunu çağırır
+  getUserTotalScore: async (userId) => {
+    const response = await api.get(`/reports/user/${userId}/score`)
+    return response.data
+  },
+
+  // Top contributors (HAVING + AGGREGATE)
+  getTopContributors: async (minWasteCount = 1) => {
+    const response = await api.get('/reports/top-contributors', { params: { minWasteCount } })
+    return response.data
   }
 }
 

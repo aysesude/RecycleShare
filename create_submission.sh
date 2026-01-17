@@ -41,13 +41,11 @@ cp "$PROJECT_DIR/database/schema.sql" "$TEMP_DIR/47/database/"
 # 4. .env.example ve README.md çıkarıldı (İstek üzerine)
 
 # 6. Rapor (eğer varsa)
-if [ -f "$PROJECT_DIR/rapor.pdf" ]; then
-    echo "   → Rapor PDF..."
-    cp "$PROJECT_DIR/rapor.pdf" "$TEMP_DIR/47/"
-elif [ -f "$PROJECT_DIR/rapor.pdf" ]; then
-    cp "$PROJECT_DIR/rapor.pdf" "$TEMP_DIR/47/"
+if [ -f "$PROJECT_DIR/47.pdf" ]; then
+    echo "   → Rapor PDF (47.pdf)..."
+    cp "$PROJECT_DIR/47.pdf" "$TEMP_DIR/47/"
 else
-    echo "   ⚠️  rapor.pdf bulunamadı! Daha sonra ekleyin."
+    echo "   ⚠️  47.pdf bulunamadı! Daha sonra ekleyin."
 fi
 
 # 7. ZIP oluştur
@@ -76,10 +74,10 @@ echo ""
 
 # Eksik kontrolü
 echo "⚠️  Kontrol Listesi:"
-if [ -f "$PROJECT_DIR/rapor.pdf" ]; then
-    echo "   ✅ rapor.pdf mevcut"
+if [ -f "$PROJECT_DIR/47.pdf" ]; then
+    echo "   ✅ 47.pdf mevcut"
 else
-    echo "   ❌ rapor.pdf EKSİK - ZIP'e eklenmedi!"
+    echo "   ❌ 47.pdf EKSİK - ZIP'e eklenmedi!"
 fi
 
 echo ""

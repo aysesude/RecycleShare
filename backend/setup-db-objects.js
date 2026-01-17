@@ -39,7 +39,7 @@ async function setupDatabaseObjects() {
 
     // 3. Views
     console.log('\n📋 Views...');
-    
+
     await pool.query(`
       CREATE OR REPLACE VIEW v_active_waste_details AS
       SELECT 
@@ -72,14 +72,10 @@ async function setupDatabaseObjects() {
         u.first_name || ' ' || u.last_name AS full_name,
         u.email,
         u.city,
-        COALESCE(COUNT(DISTINCT w.waste_id), 0) AS total_waste_posted,
-        COALESCE(COUNT(DISTINCT r.reservation_id), 0) AS total_reservations_made,
-        COALESCE(SUM(es.total_score), 0) AS total_environmental_score
+        COALESCE((SELECT COUNT(*) FROM waste w WHERE w.user_id = u.user_id), 0) AS total_waste_posted,
+        COALESCE((SELECT COUNT(*) FROM reservations r WHERE r.collector_id = u.user_id), 0) AS total_reservations_made,
+        COALESCE((SELECT SUM(es.total_score) FROM environmental_scores es WHERE es.user_id = u.user_id), 0) AS total_environmental_score
       FROM users u
-      LEFT JOIN waste w ON u.user_id = w.user_id
-      LEFT JOIN reservations r ON u.user_id = r.collector_id
-      LEFT JOIN environmental_scores es ON u.user_id = es.user_id
-      GROUP BY u.user_id, u.first_name, u.last_name, u.email, u.city
     `);
     console.log('✅ v_user_statistics oluşturuldu');
 
@@ -317,7 +313,7 @@ async function setupDatabaseObjects() {
 
     // 6. Indexler
     console.log('\n📋 Indexes...');
-    
+
     const indexes = [
       'CREATE INDEX IF NOT EXISTS idx_users_city ON users(city)',
       'CREATE INDEX IF NOT EXISTS idx_waste_status ON waste(status)',
